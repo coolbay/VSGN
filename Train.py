@@ -211,62 +211,54 @@ def test_SegTAD_epoch(data_loader, model, epoch, writer, opt, bm_mask):
     model.eval()
 
     epoch_cost = 0
-    epoch_cost_segmentation = 0
-    epoch_cost_boundary = 0
-    epoch_cost_det_reg = 0
-    epoch_cost_det_cls = 0
+    epoch_cost_stage0 = 0
+    epoch_cost_stage1 = 0
+    epoch_cost_stage2 = 0
     r1, r2, r3 = opt['loss_ratios']
 
     for n_iter, (input_data, gt_action, gt_start, gt_end, gt_bd_map, gt_bbox, num_gt) in enumerate(data_loader):
-        pred_bd_map, pred_action, pred_start, pred_end, anchor_idx, anchor_num, samp_thr, pos_idx_st_end = model(input_data, gt_bd_map, gt_bbox, num_gt)
+        losses_rpn, pred_action, pred_start, pred_end = model(input_data, gt_bd_map, gt_bbox, num_gt)
 
-        # Loss1: segmentation actionness
+        # Loss2a: actionness
         if opt['binary_actionness'] == 'true':
-            cost_segmentation = bi_loss(pred_action[:,0,:], gt_action.cuda())
+            cost_actionness = bi_loss(pred_action[:,0,:], gt_action.cuda())
         else:
             criterion = nn.CrossEntropyLoss()
             cost_segmentation = criterion(pred_action, gt_action.cuda().long())
 
-        # Loss2: start/end loss
-        cost_boundary = boundary_loss_function(pred_start, pred_end, gt_start.cuda(), gt_end.cuda())
+        # Loss2b: start/end loss
+        cost_boundary = boundary_loss_function(pred_start.cuda(), pred_end, gt_start.cuda(), gt_end.cuda())
         # cost_boundary = torch.zeros((1,), device=pred_bd_map.device)
 
-        # Loss3: detection loss
-        if opt['stage2'] != 'none':
-            det_reg_loss, det_cls_loss = detect_loss_fuction(opt, pred_bd_map, gt_bd_map.cuda(), bm_mask.cuda(), anchor_idx, anchor_num, samp_thr)
-            cost_detection = det_reg_loss + det_cls_loss
-        else:
-            det_reg_loss = torch.zeros((1,), device=pred_bd_map.device)
-            det_cls_loss = torch.zeros((1,), device=pred_bd_map.device)
-            cost_detection = torch.zeros((1,), device=pred_bd_map.device)
-
         # Overall loss
-        cost = r1*cost_segmentation + r2*cost_boundary + r3*cost_detection
+        loss_stage0 = torch.mean(losses_rpn['loss_cls_enc'] + losses_rpn['loss_reg_enc'])
+        loss_stage1 = torch.mean(losses_rpn['loss_cls_dec'] + losses_rpn['loss_reg_dec'])
+        loss_stage2 = cost_actionness + cost_boundary
+
+        cost = loss_stage0 + loss_stage1 + loss_stage2
 
         epoch_cost += cost.cpu().detach().numpy()
-        epoch_cost_segmentation += cost_segmentation.cpu().detach().numpy()
-        epoch_cost_boundary += cost_boundary.cpu().detach().numpy()
-        epoch_cost_det_reg += det_reg_loss.cpu().detach().numpy()
-        epoch_cost_det_cls += det_cls_loss.cpu().detach().numpy()
+        epoch_cost_stage0 += loss_stage0.cpu().detach().numpy()
+        epoch_cost_stage1 += loss_stage1.cpu().detach().numpy()
+        epoch_cost_stage2 += loss_stage2.cpu().detach().numpy()
 
-    writer.add_scalars('data/cost', {'test': epoch_cost / (n_iter + 1)}, epoch)
-    writer.add_scalars('data/cost_segmentation', {'test': epoch_cost_segmentation / (n_iter + 1)}, epoch)
-    writer.add_scalars('data/cost_boundary', {'test': epoch_cost_boundary / (n_iter + 1)}, epoch)
-    writer.add_scalars('data/cost_det_reg', {'test': epoch_cost_det_reg / (n_iter + 1)}, epoch)
-    writer.add_scalars('data/cost_det_cls', {'test': epoch_cost_det_cls / (n_iter + 1)}, epoch)
+
+    # writer.add_scalars('data/cost', {'test': epoch_cost / (n_iter + 1)}, epoch)
+    # writer.add_scalars('data/cost_segmentation', {'test': epoch_cost_segmentation / (n_iter + 1)}, epoch)
+    # writer.add_scalars('data/cost_boundary', {'test': epoch_cost_boundary / (n_iter + 1)}, epoch)
+    # writer.add_scalars('data/cost_det_reg', {'test': epoch_cost_det_reg / (n_iter + 1)}, epoch)
+    # writer.add_scalars('data/cost_det_cls', {'test': epoch_cost_det_cls / (n_iter + 1)}, epoch)
 
 
     print("Testing loss (epoch %d): "
           "total loss %.04f, "
-          "segmentation loss: %.04f, "
-          "boundary loss: %.04f, "
-          "detection regression loss %.04f, "
-          "detection classification loss %.04f" % (
+          "stage0 loss: %.04f, "
+          "stage1 loss: %.04f, "
+          "stage2 loss %.04f, " % (
               epoch, epoch_cost/(n_iter + 1),
-              epoch_cost_segmentation/(n_iter + 1),
-              epoch_cost_boundary/(n_iter + 1),
-              epoch_cost_det_reg/(n_iter + 1),
-              epoch_cost_det_cls/(n_iter + 1),
+              epoch_cost_stage0/(n_iter + 1),
+              epoch_cost_stage1/(n_iter + 1),
+              epoch_cost_stage2/(n_iter + 1),
           ))
 
 

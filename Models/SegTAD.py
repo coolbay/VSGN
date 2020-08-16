@@ -104,7 +104,7 @@ class SegTAD(nn.Module):
         start = F.interpolate(start[:, None, :], size=input.size()[2:], mode='linear', align_corners=True).squeeze(1)
         end = F.interpolate(end[:, None, :], size=input.size()[2:], mode='linear', align_corners=True).squeeze(1)
 
-        if self.training:
+        if self.is_train == 'true':
             losses_rpn = self._forward_train(cls_pred_enc, reg_pred_enc, cls_pred_dec, reg_pred_dec, gt_bbox , num_gt)
             return losses_rpn, actionness, start, end
         else:
