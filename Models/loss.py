@@ -1,0 +1,146 @@
+
+import torch
+from .matcher import Matcher
+import math
+import sys
+sys.path.append("..")
+
+from Utils.FocalLoss.sigmoid_focal_loss import SigmoidFocalLoss
+from .BoxCoder import  BoxCoder
+
+
+class LossComputation(object):
+
+    def __init__(self, opt):
+
+        self.tscale = opt["temporal_scale"]
+        self.iou_thr_method = opt['iou_thr_method']
+        self.gamma = 2.0
+        self.alpha = 0.25
+
+        if self.iou_thr_method == 'fixed':
+            self.iou_thresholds = opt['samp_thr']
+            self.matcher = Matcher(True)
+
+        self.box_coder = BoxCoder(opt)
+        self.cls_loss_func = SigmoidFocalLoss(self.gamma, self.alpha)
+
+
+    # TODO: 1. low threshold
+    # TODO: 2. Centerness: positive center should be inside the gt action
+    def _prepare_targets(self, gt_bbox, num_gt, anchors, stage=0):
+
+        cls_targets = []
+        reg_targets = []
+        all_anchors = torch.cat(anchors, dim=1)
+
+        for i in range(len(gt_bbox)):
+
+            if self.iou_thr_method == 'fixed':
+                gt_cur_im = gt_bbox[i, :num_gt[i], :-1] * self.tscale
+                anchor_cur_im = all_anchors[i]
+                iou_matrix = self._iou_anchors_gts(anchor_cur_im, gt_cur_im)
+
+                # Find the corresponding gt for each pred
+                matched_idxs = self.matcher(iou_matrix.transpose(0, 1), self.iou_thresholds[stage])
+
+                # Use the label of the corresponding gt as the classification target for the pred
+                cls_labels_cur_im = torch.zeros_like(matched_idxs)
+                cls_labels_cur_im[matched_idxs >=0] = 1
+
+                # Record the boundary offset as the regression target
+                matched_gts = gt_cur_im[matched_idxs.clamp(min=0)]
+                reg_targets_cur_im = self.box_coder.encode(matched_gts, anchor_cur_im)
+
+                cls_targets.append(cls_labels_cur_im.to(dtype=torch.int32))
+                reg_targets.append(reg_targets_cur_im)
+
+        return cls_targets, reg_targets
+
+    def _iou_anchors_gts(self, anchor, gt):
+
+        anchors_min = anchor[:, 0]
+        anchors_max = anchor[:, 1]
+        box_min = gt[:, 0]
+        box_max = gt[:, 1]
+        len_anchors = anchors_max - anchors_min + 1
+        int_xmin = torch.max(anchors_min[:, None], box_min)
+        int_xmax = torch.min(anchors_max[:, None], box_max)
+        inter_len = torch.clamp(int_xmax - int_xmin, min=0)
+        union_len = torch.clamp(len_anchors[:, None] + box_max - box_min - inter_len, min=0)
+        # print inter_len,union_len
+        jaccard = inter_len / union_len
+        return jaccard
+
+    def __call__(self, cls_pred_enc, reg_pred_enc, cls_pred_dec, reg_pred_dec, gt_bbox, num_gt, anchors):
+        bs = cls_pred_enc[0].shape[0]
+
+        # Loss for the first stage --- encoder
+        anchors = [anchor.unsqueeze(0).repeat(bs, 1, 1).to(device=gt_bbox.device) for anchor in anchors]
+        cls_loss0, reg_loss0 = self._loss_one_stage(cls_pred_enc, reg_pred_enc, gt_bbox, num_gt, anchors, stage=0)
+
+        # Loss for the second stage --- decoder
+        anchors_update = []
+        for pred, anchor in zip(reg_pred_enc, anchors):
+            pred = pred.permute(0, 2, 1).reshape(-1, 2)
+            anchor = anchor.view(-1, 2)
+            anchors_update.append(self.box_coder.decode(pred, anchor).view(bs, -1,2))
+        cls_pred_dec = [cls_pred_dec[i] for i in range(len(cls_pred_dec)-1, -1, -1)]
+        reg_pred_dec = [reg_pred_dec[i] for i in range(len(reg_pred_dec)-1, -1, -1)]
+        cls_loss1, reg_loss1 = self._loss_one_stage(cls_pred_dec, reg_pred_dec, gt_bbox, num_gt, anchors_update, stage=1)
+
+        return cls_loss0, reg_loss0, cls_loss1, reg_loss1
+
+    def _loss_one_stage(self, cls_pred, reg_pred, gt_bbox, num_gt, anchors, stage=0):
+
+        num_cls = cls_pred[0].shape[1]
+
+        cls_labels, reg_targets = self._prepare_targets(gt_bbox, num_gt, anchors, stage=stage)
+
+        cls_pred = torch.cat(cls_pred, dim=2).permute(0, 2, 1).reshape(-1, num_cls)
+        reg_pred = torch.cat(reg_pred, dim=2).permute(0, 2, 1).reshape(-1, 2)
+
+        cls_labels = torch.cat(cls_labels, dim=0)
+        reg_targets = torch.cat(reg_targets, dim=0)
+
+        all_anchors = torch.cat(anchors, dim=1).view(-1, 2)
+
+        pos_inds = torch.nonzero(cls_labels > 0).squeeze(1)
+        cls_loss = self.cls_loss_func(cls_pred, cls_labels) / cls_pred.numel()
+        reg_loss = self.reg_loss_func(reg_pred[pos_inds], reg_targets[pos_inds], all_anchors[pos_inds]) / pos_inds.numel()
+
+        return  cls_loss, reg_loss
+
+    def reg_loss_func(self, pred, target, anchor, weight=None):
+        pred_boxes = self.box_coder.decode(pred, anchor)
+        pred_x1 = torch.min(pred_boxes[:, 0], pred_boxes[:, 1])
+        pred_x2 = torch.max(pred_boxes[:, 0], pred_boxes[:, 1])
+        pred_area = (pred_x2 - pred_x1)
+
+        gt_boxes = self.box_coder.decode(target, anchor)
+        target_x1 = gt_boxes[:, 0]
+        target_x2 = gt_boxes[:, 1]
+        target_area = (target_x2 - target_x1)
+
+        x1_intersect = torch.max(pred_x1, target_x1)
+        x2_intersect = torch.min(pred_x2, target_x2)
+        area_intersect = torch.zeros(pred_x1.size()).to(pred)
+        mask = (x2_intersect > x1_intersect)
+        area_intersect[mask] = (x2_intersect[mask] - x1_intersect[mask])
+
+        x1_enclosing = torch.min(pred_x1, target_x1)
+        x2_enclosing = torch.max(pred_x2, target_x2)
+        area_enclosing = (x2_enclosing - x1_enclosing)  + 1e-7
+
+        area_union = pred_area + target_area - area_intersect + 1e-7
+        ious = area_intersect / area_union
+        gious = ious - (area_enclosing - area_union) / area_enclosing
+
+        losses = 1 - gious
+
+        if weight is not None and weight.sum() > 0:
+            return (losses * weight).sum()
+        else:
+            assert losses.numel() != 0
+            return losses.sum()
+
