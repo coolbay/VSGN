@@ -470,9 +470,12 @@ def parse_opt():
     parser.add_argument(
         '--num_head_layers',
         type=int,
-        default=1)
+        default=4)
 
-
+    parser.add_argument(
+        '--PBR_actionness',
+        default=False,
+        action='store_true')
 
     args = parser.parse_args()
 

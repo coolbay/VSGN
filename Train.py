@@ -185,11 +185,10 @@ def train_SegTAD_epoch(data_loader, model, optimizer, epoch, writer, opt, bm_mas
 
     # plot_dist_targets(all_gt_area) # by Catherine
 
-    # writer.add_scalars('data/cost', {'train': epoch_cost / (n_iter + 1)}, epoch)
-    # writer.add_scalars('data/cost_segmentation', {'train': epoch_cost_segmentation / (n_iter + 1)}, epoch)
-    # writer.add_scalars('data/cost_boundary', {'train': epoch_cost_boundary / (n_iter + 1)}, epoch)
-    # writer.add_scalars('data/cost_det_reg', {'train': epoch_cost_det_reg / (n_iter + 1)}, epoch)
-    # writer.add_scalars('data/cost_det_cls', {'train': epoch_cost_det_cls / (n_iter + 1)}, epoch)
+    writer.add_scalars('data/cost', {'train': epoch_cost / (n_iter + 1)}, epoch)
+    writer.add_scalars('data/cost_stage0', {'train': epoch_cost_stage0 / (n_iter + 1)}, epoch)
+    writer.add_scalars('data/cost_stage1', {'train': epoch_cost_stage1 / (n_iter + 1)}, epoch)
+    writer.add_scalars('data/cost_stage2', {'train': epoch_cost_stage2 / (n_iter + 1)}, epoch)
 
     print("Training loss (epoch %d): "
           "total loss %.04f, "
@@ -242,13 +241,10 @@ def test_SegTAD_epoch(data_loader, model, epoch, writer, opt, bm_mask):
         epoch_cost_stage1 += loss_stage1.cpu().detach().numpy()
         epoch_cost_stage2 += loss_stage2.cpu().detach().numpy()
 
-
-    # writer.add_scalars('data/cost', {'test': epoch_cost / (n_iter + 1)}, epoch)
-    # writer.add_scalars('data/cost_segmentation', {'test': epoch_cost_segmentation / (n_iter + 1)}, epoch)
-    # writer.add_scalars('data/cost_boundary', {'test': epoch_cost_boundary / (n_iter + 1)}, epoch)
-    # writer.add_scalars('data/cost_det_reg', {'test': epoch_cost_det_reg / (n_iter + 1)}, epoch)
-    # writer.add_scalars('data/cost_det_cls', {'test': epoch_cost_det_cls / (n_iter + 1)}, epoch)
-
+    writer.add_scalars('data/cost', {'test': epoch_cost / (n_iter + 1)}, epoch)
+    writer.add_scalars('data/cost_stage0', {'test': epoch_cost_stage0 / (n_iter + 1)}, epoch)
+    writer.add_scalars('data/cost_stage1', {'test': epoch_cost_stage1 / (n_iter + 1)}, epoch)
+    writer.add_scalars('data/cost_stage2', {'test': epoch_cost_stage2 / (n_iter + 1)}, epoch)
 
     print("Testing loss (epoch %d): "
           "total loss %.04f, "
