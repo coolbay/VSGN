@@ -106,7 +106,7 @@ class LossComputation(object):
         all_anchors = torch.cat(anchors, dim=1).view(-1, 2)
 
         pos_inds = torch.nonzero(cls_labels > 0).squeeze(1)
-        cls_loss = self.cls_loss_func(cls_pred, cls_labels) / cls_pred.numel()
+        cls_loss = self.cls_loss_func(cls_pred, cls_labels) / pos_inds.numel() #cls_pred.numel()
         reg_loss = self.reg_loss_func(reg_pred[pos_inds], reg_targets[pos_inds], all_anchors[pos_inds]) / pos_inds.numel()
 
         return  cls_loss, reg_loss

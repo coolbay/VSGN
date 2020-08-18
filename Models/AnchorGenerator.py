@@ -8,7 +8,7 @@ class AnchorGenerator(nn.Module):
         super(AnchorGenerator, self).__init__()
         self.num_levels = opt['num_levels']
         self.tscale = opt["temporal_scale"]
-        self.scale = 8
+        self.scale = opt['anchor_scale']  #8  # 1
         self.base_stride = 4
         self.strides = []            # distance between anchors with respect to the sequence
 
@@ -21,10 +21,10 @@ class AnchorGenerator(nn.Module):
         self.anchors = self.gen_anchors()
 
     def gen_anchors(self):
-        feat_sizes = [ math.ceil(self.tscale / (self.scale * pow(2, l))) for l in range(self.num_levels)]
+        feat_sizes = [ math.ceil(self.tscale / self.strides[l]) for l in range(self.num_levels)]
         anchors = []
         for size, stride, base_anchors in zip(feat_sizes, self.strides, self.base_anchors):
-            shifts = torch.arange(0, self.tscale , step=stride, dtype=torch.float32)[:, None].repeat(1, 2)
+            shifts = torch.arange(0, size * stride, step=stride, dtype=torch.float32)[:, None].repeat(1, 2)
             anchors.append((shifts.view(-1, 1, 2) + base_anchors.view(1, -1, 2)).reshape(-1, 2))
 
         return anchors
