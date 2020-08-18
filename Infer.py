@@ -88,28 +88,9 @@ def infer_batch_selectprop(model,
 
 
 
-    # Parallel(n_jobs=len(index_list))(
-    #     delayed(infer_v_asis)(
-    #         opt,
-    #         video=list(test_loader.dataset.video_list)[full_idx],
-    #         score_pred_v = score_pred_batch[batch_idx],
-    #         loc_pred_v = loc_pred_batch[batch_idx],
-    #         pred_action_v = pred_action_batch[batch_idx],
-    #         pred_start_v = pred_start_batch[batch_idx],
-    #         pred_end_v = pred_end_batch[batch_idx],
-    #         proposal_path = proposal_path,
-    #         actionness_path = actionness_path,
-    #         start_end_path = start_end_path,
-    #         prop_map_path = prop_map_path
-    #
-    #     ) for batch_idx, full_idx in enumerate(index_list))
-
-
-
-    # For debug: one process
-    for batch_idx, full_idx in enumerate(index_list):
-        infer_v_asis(
-                opt,
+    Parallel(n_jobs=len(index_list))(
+        delayed(infer_v_asis)(
+            opt,
             video=list(test_loader.dataset.video_list)[full_idx],
             score_pred_v = score_pred_batch[batch_idx],
             loc_pred_v = loc_pred_batch[batch_idx],
@@ -120,7 +101,26 @@ def infer_batch_selectprop(model,
             actionness_path = actionness_path,
             start_end_path = start_end_path,
             prop_map_path = prop_map_path
-        )
+
+        ) for batch_idx, full_idx in enumerate(index_list))
+
+
+
+    # # For debug: one process
+    # for batch_idx, full_idx in enumerate(index_list):
+    #     infer_v_asis(
+    #             opt,
+    #         video=list(test_loader.dataset.video_list)[full_idx],
+    #         score_pred_v = score_pred_batch[batch_idx],
+    #         loc_pred_v = loc_pred_batch[batch_idx],
+    #         pred_action_v = pred_action_batch[batch_idx],
+    #         pred_start_v = pred_start_batch[batch_idx],
+    #         pred_end_v = pred_end_batch[batch_idx],
+    #         proposal_path = proposal_path,
+    #         actionness_path = actionness_path,
+    #         start_end_path = start_end_path,
+    #         prop_map_path = prop_map_path
+    #     )
 
 
 
@@ -142,11 +142,14 @@ def infer_v_asis(*args, **kwargs):
 
     if False:
         loc_pred_v[:, -1] = loc_pred_v[:, -1] - 1
-    else:
-        # correct_idx = (loc_pred_v[:, -1] < prop_tscale).nonzero()
+    elif False:
         correct_idx = ((loc_pred_v[:, -1] < prop_tscale) * (loc_pred_v[:, 0] >=0)).nonzero()
         loc_pred_v = loc_pred_v[correct_idx]
         score = score[correct_idx]
+    else:
+        loc_pred_v[:,0] = loc_pred_v[:,0].clip(min=0)
+        loc_pred_v[:,1] = loc_pred_v[:,1].clip(max=prop_tscale)
+
     if opt['dataset'] == 'activitynet' or opt['dataset'] == 'hacs':
         new_props = np.concatenate((loc_pred_v/prop_tscale, score[:, None], score[:, None], score[:, None]), axis=1)
 

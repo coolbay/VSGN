@@ -44,7 +44,7 @@ def Train_SegTAD(opt):
     model = SegTAD(opt)
 
     # If only train detector, then load the pretrained segmentor
-    if opt['pretrain_model'] == 'FeatureEnhancer':
+    if False: #opt['pretrain_model'] == 'FeatureEnhancer':
         checkpoint = torch.load(opt["checkpoint_path"] + "/best.pth.tar")
         base_dict = {}
         for k, v in list(checkpoint['state_dict'].items()):
@@ -54,9 +54,9 @@ def Train_SegTAD(opt):
         model.load_state_dict(base_dict, strict=False)
         print('Load pretrained model successfully!')
     # If train the full network, train from scrach or load pretrained model if it exists
-    elif opt['pretrain_model'] == 'full':
-        if os.path.exists(opt["checkpoint_path"] + "/checkpoint4.pth.tar"): #CHANGE
-            checkpoint = torch.load(opt["checkpoint_path"] + "/checkpoint4.pth.tar")
+    elif False: #opt['pretrain_model'] == 'full':
+        if os.path.exists(opt["checkpoint_path"] + "/best.pth.tar"): #CHANGE
+            checkpoint = torch.load(opt["checkpoint_path"] + "/best.pth.tar")
             base_dict = {}
             for k, v in list(checkpoint['state_dict'].items()):
                 # base_dict = {'.'.join(k.split('.')[1:]): v }

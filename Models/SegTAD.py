@@ -93,7 +93,7 @@ class SegTAD(nn.Module):
         feats_enc, feats_dec = self.fpn(input)
 
         cls_pred_enc, reg_pred_enc = self.head_enc(feats_enc)
-        cls_pred_dec, reg_pred_dec = self.head_enc(feats_dec)
+        cls_pred_dec, reg_pred_dec = self.head_dec(feats_dec)
 
         # Action/start/end scores
         actionness = self.head_actionness(feats_dec[-1])
