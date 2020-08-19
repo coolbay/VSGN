@@ -133,6 +133,8 @@ def infer_v_asis(*args, **kwargs):
     loc_pred_v = kwargs['loc_dec_v']
     score_enc_v = kwargs['score_enc_v']
     score_dec_v = kwargs['score_dec_v']
+    pred_start_v = kwargs['pred_start_v']
+    pred_end_v = kwargs['pred_end_v']
     proposal_path = kwargs['proposal_path']
 
     if opt['dataset'] == 'activitynet' or opt['dataset'] == 'hacs':
@@ -142,17 +144,20 @@ def infer_v_asis(*args, **kwargs):
         win_start, win_end = kwargs['video']['frames'][0][1:3]
         offset = kwargs['video']['win_idx']
 
-    if opt['infer_score'] == 'stage1':
-        score = score_dec_v
-    elif opt['infer_score'] == 'stage1_stage2':
-        a = 1
-    elif opt['infer_score'] == 'stage0_stage1':
-        score = score_enc_v * score_dec_v
-    elif opt['infer_score'] == 'stage0_stage1_stage2':
-        a = 1
-
     loc_pred_v[:,0] = loc_pred_v[:,0].clip(min=0)
-    loc_pred_v[:,1] = loc_pred_v[:,1].clip(max=prop_tscale)
+    loc_pred_v[:,1] = loc_pred_v[:,1].clip(max=prop_tscale-1)
+
+    start_score = (pred_start_v[np.ceil(loc_pred_v[:,0]).astype('int32')] + pred_start_v[np.floor(loc_pred_v[:,0]).astype('int32')]) / 2
+    end_score = (pred_end_v[np.ceil(loc_pred_v[:,1]).astype('int32')] + pred_end_v[np.floor(loc_pred_v[:,1]).astype('int32')]) / 2
+
+    score_stage0 = score_enc_v
+    score_stage2 = start_score * end_score
+    score = score_dec_v
+
+    if 'stage0' in opt['infer_score']:
+        score = score * score_stage0
+    if 'stage2' in  opt['infer_score']:
+        score = score * score_stage2
 
     if opt['dataset'] == 'activitynet' or opt['dataset'] == 'hacs':
         new_props = np.concatenate((loc_pred_v/prop_tscale, score[:, None], score[:, None], score[:, None]), axis=1)
