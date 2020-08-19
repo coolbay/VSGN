@@ -10,6 +10,7 @@ class ActionGenerator(object):
 
         self.pre_nms_thresh = 0.00
         self.pre_nms_top_n = 1000
+        self.num_classes = 1 if opt['dataset'] == 'activitynet' else opt['decoder_num_classes']
 
         self.box_coder = BoxCoder(opt)
 
@@ -19,7 +20,7 @@ class ActionGenerator(object):
 
         # First stage: encoder
         anchors = [anchor.unsqueeze(0).repeat(bs, 1, 1).to(device=cls_pred_enc[0].device) for anchor in anchors]
-        all_anchors = torch.cat(anchors, dim=1)
+        all_anchors = torch.cat(anchors, dim=1)          # bs, levels*positions*scales, left-right
         loc_enc, score_enc, label_enc = self._call_one_stage(cls_pred_enc, reg_pred_enc, all_anchors)
 
         # Second stage: decoder
@@ -30,10 +31,11 @@ class ActionGenerator(object):
 
     def _call_one_stage(self, cls_pred, reg_pred, all_anchors):
 
-        cls_pred = torch.cat(cls_pred, dim=2).permute(0, 2, 1).sigmoid()
-        reg_pred = torch.cat(reg_pred, dim=2).permute(0, 2, 1)
+        N = cls_pred[0].shape[0]
 
-        N, C, _ = cls_pred.shape
+        cls_pred = torch.cat(cls_pred, dim=2).permute(0, 2, 1).reshape(N, -1, self.num_classes).sigmoid()  # bs, levels*positions*scales, num_cls
+        reg_pred = torch.cat(reg_pred, dim=2).permute(0, 2, 1).reshape(N, -1, 2)   # bs, levels*positions*scales, 2
+
 
         candidate_inds = cls_pred > self.pre_nms_thresh
         pre_nms_top_n = candidate_inds.view(N, -1).sum(1)
@@ -52,8 +54,8 @@ class ActionGenerator(object):
             per_box_loc = per_candidate_nonzeros[:, 0]
 
             loc_pred = self.box_coder.decode(
-                reg_seq[per_box_loc, :].view(-1, 2),
-                anchor_seq[per_box_loc, :].view(-1, 2)
+                reg_seq[per_box_loc, :].view(-1, 2),        # levels*positions*scales, 2
+                anchor_seq[per_box_loc, :].view(-1, 2)      # levels*positions*scales, 2
             )
 
             score_pred = cls_seq[per_box_loc, 0]
