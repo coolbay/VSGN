@@ -476,7 +476,7 @@ def parse_opt():
 
     parser.add_argument(
         '--infer_score',
-        default='stage1_stage2',
+        default='stage1',
         type=str,
         choices=['stage1', 'stage1_stage2', 'stage0_stage1', 'stage0_stage1_stage2'])
 

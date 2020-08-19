@@ -9,7 +9,7 @@ class ActionGenerator(object):
         super(ActionGenerator, self).__init__()
 
         self.pre_nms_thresh = 0.00
-        self.pre_nms_top_n = 1000
+        self.pre_nms_top_n = 10000
         self.num_classes = 1 if opt['dataset'] == 'activitynet' else opt['decoder_num_classes']
 
         self.box_coder = BoxCoder(opt)
@@ -45,7 +45,7 @@ class ActionGenerator(object):
         score_res = []
         label_res = []
         for cls_seq, reg_seq, anchor_seq, pre_nms_top_n_seq, candidate_inds_seq in zip(cls_pred, reg_pred, all_anchors, pre_nms_top_n, candidate_inds):
-            pred_im = {}
+
             cls_seq1 = cls_seq[candidate_inds_seq]
             cls_seq1, top_k_indices = cls_seq1.topk(pre_nms_top_n_seq, sorted=False)
 
