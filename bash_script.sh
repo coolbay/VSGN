@@ -60,8 +60,7 @@ then
         --checkpoint_path ${CKP_PATH}  \
         --is_train true   \
         --dataset ${DATASET}   \
-        --batch_size  128  \
-        --PBR_actionness | tee -a "$LOG_TRAIN"
+        --batch_size  128  | tee -a "$LOG_TRAIN"
 fi
 
 if [[ $2 =~ .*'infer'.* ]]
@@ -80,8 +79,7 @@ then
         --checkpoint_path ${CKP_PATH}   \
         --is_train false  \
         --dataset ${DATASET}   \
-        --batch_size  8  \
-        --PBR_actionness | tee -a "$LOG_TEST"
+        --batch_size  8  | tee -a "$LOG_TEST"
 fi
 
 if [[ $2 =~ .*'eval'.* ]]
@@ -97,8 +95,7 @@ then
     python Eval.py  --output_path ${OUTPUT_PATH}    \
         --feature_path ${DATA_PATH} \
         --checkpoint_path ${CKP_PATH}   \
-        --dataset ${DATASET}   \
-        --PBR_actionness | tee -a "$LOG_TEST"
+        --dataset ${DATASET}  | tee -a "$LOG_TEST"
 fi
 
 conda deactivate
