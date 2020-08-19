@@ -8,7 +8,7 @@ class AnchorGenerator(nn.Module):
         super(AnchorGenerator, self).__init__()
         self.num_levels = opt['num_levels']
         self.tscale = opt["temporal_scale"]
-        self.scale = opt['anchor_scale']  #8  # 1
+        self.scales = opt['anchor_scale']  #8  # 1
         self.base_stride = 4
         self.strides = []            # distance between anchors with respect to the sequence
 
@@ -16,7 +16,7 @@ class AnchorGenerator(nn.Module):
         for l in range(self.num_levels):
             stride = self.base_stride * pow(2, l)
             self.strides.append(stride)
-            self.base_anchors.append( self.get_base_anchors(stride, self.scale))
+            self.base_anchors.append( self.get_base_anchors(stride, self.scales))
 
         self.anchors = self.gen_anchors()
 
@@ -29,15 +29,15 @@ class AnchorGenerator(nn.Module):
 
         return anchors
 
-    def get_base_anchors(self, stride, scale):
+    def get_base_anchors(self, stride, scales):
         anchors = torch.tensor([1, stride], dtype=torch.float) - 0.5
-        anchors = self._scale_enum(anchors, scale)
+        anchors = self._scale_enum(anchors, scales)
         return anchors
 
-    def _scale_enum(self, anchor, scale):
+    def _scale_enum(self, anchor, scales):
         """Enumerate a set of anchors for each scale wrt an anchor."""
         length, center = self._whctrs(anchor)
-        ws = length * scale
+        ws = length * torch.tensor(scales)
         anchors = self._mkanchors(ws, center)
         return anchors
 
@@ -46,10 +46,11 @@ class AnchorGenerator(nn.Module):
         # ws = ws[:, None]
         anchors = torch.stack(
             (
-                ctr - 0.5 * (ws - 1),
-                ctr + 0.5 * (ws - 1),
+                ctr.unsqueeze(0)- 0.5 * (ws.to(dtype=torch.float32) - 1),
+                ctr.unsqueeze(0)+ 0.5 * (ws.to(dtype=torch.float32) - 1)
             )
-        )
+        ).transpose(0,1)
+
         return anchors
 
     def _whctrs(self, anchor):

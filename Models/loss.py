@@ -17,6 +17,7 @@ class LossComputation(object):
         self.iou_thr_method = opt['iou_thr_method']
         self.gamma = 2.0
         self.alpha = 0.25
+        self.num_classes = 1 if opt['dataset'] == 'activitynet' else opt['decoder_num_classes']
 
         if self.iou_thr_method == 'fixed':
             self.iou_thresholds = opt['samp_thr']
@@ -32,7 +33,7 @@ class LossComputation(object):
 
         cls_targets = []
         reg_targets = []
-        all_anchors = torch.cat(anchors, dim=1)
+        all_anchors = torch.cat(anchors, dim=1) # bs, levels, positions, scales, left-right
 
         for i in range(len(gt_bbox)):
 
@@ -93,17 +94,17 @@ class LossComputation(object):
 
     def _loss_one_stage(self, cls_pred, reg_pred, gt_bbox, num_gt, anchors, stage=0):
 
-        num_cls = cls_pred[0].shape[1]
+        num_cls = self.num_classes
 
-        cls_labels, reg_targets = self._prepare_targets(gt_bbox, num_gt, anchors, stage=stage)
+        cls_labels, reg_targets = self._prepare_targets(gt_bbox, num_gt, anchors, stage=stage) # bs, levels*positions*scales, num_cls/left-right
 
-        cls_pred = torch.cat(cls_pred, dim=2).permute(0, 2, 1).reshape(-1, num_cls)
-        reg_pred = torch.cat(reg_pred, dim=2).permute(0, 2, 1).reshape(-1, 2)
+        cls_pred = torch.cat(cls_pred, dim=2).permute(0, 2, 1).reshape(-1, num_cls) # bs, levels*positions, scales*cls --> bs*levels*positions*scales, num_cls
+        reg_pred = torch.cat(reg_pred, dim=2).permute(0, 2, 1).reshape(-1, 2) # bs, levels*positions, scales*left-right --> bs*levels*positions*scales, left-right
 
-        cls_labels = torch.cat(cls_labels, dim=0)
-        reg_targets = torch.cat(reg_targets, dim=0)
+        cls_labels = torch.cat(cls_labels, dim=0)  # bs*levels*positions*scales, num_cls
+        reg_targets = torch.cat(reg_targets, dim=0)  # bs*levels*positions*scales, left-right
 
-        all_anchors = torch.cat(anchors, dim=1).view(-1, 2)
+        all_anchors = torch.cat(anchors, dim=1).view(-1, 2) # bs*levels*positions*scales, 2
 
         pos_inds = torch.nonzero(cls_labels > 0).squeeze(1)
         cls_loss = self.cls_loss_func(cls_pred, cls_labels) / pos_inds.numel() #cls_pred.numel()

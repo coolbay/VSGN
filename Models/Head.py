@@ -8,7 +8,7 @@ class Head(nn.Module):
 
         self.num_convs_head = opt['num_head_layers']  # 1
         in_channels = opt['bb_hidden_dim']
-        num_anchors = 1
+        num_anchors = len(opt['anchor_scale'])
         num_classes = 1 if opt['dataset'] == 'activitynet' else opt['decoder_num_classes']
 
         cls_tower = []

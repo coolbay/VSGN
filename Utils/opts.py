@@ -464,8 +464,9 @@ def parse_opt():
 
     parser.add_argument(
         '--anchor_scale',
+        nargs='+',
         type=int,
-        default=8)
+        default=[8, 12])
 
     parser.add_argument(
         '--num_head_layers',
