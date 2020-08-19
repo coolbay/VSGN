@@ -76,40 +76,22 @@ def infer_batch_selectprop(model,
                            prop_map_path,):
 
     gt_act_map = torch.zeros((input_data.shape[0],), device=input_data.device)
-    loc_pred, score_pred, pred_action, pred_start, pred_end = model(input_data.cuda(), gt_act_map)
+    loc_enc, score_enc, loc_dec, score_dec, pred_action, pred_start, pred_end = model(input_data.cuda(), gt_act_map)
 
 
     # Move variables to output to CPU
-    loc_pred_batch = loc_pred.detach().cpu().numpy()
-    score_pred_batch = score_pred.detach().cpu().numpy()
+    loc_dec_batch = loc_dec.detach().cpu().numpy()
+    score_enc_batch = score_enc.detach().cpu().numpy()
+    score_dec_batch = score_dec.detach().cpu().numpy()
     pred_action_batch = pred_action.detach().cpu().numpy()
     pred_start_batch = pred_start.detach().cpu().numpy()
     pred_end_batch = pred_end.detach().cpu().numpy()
 
 
 
-    Parallel(n_jobs=len(index_list))(
-        delayed(infer_v_asis)(
-            opt,
-            video=list(test_loader.dataset.video_list)[full_idx],
-            score_pred_v = score_pred_batch[batch_idx],
-            loc_pred_v = loc_pred_batch[batch_idx],
-            pred_action_v = pred_action_batch[batch_idx],
-            pred_start_v = pred_start_batch[batch_idx],
-            pred_end_v = pred_end_batch[batch_idx],
-            proposal_path = proposal_path,
-            actionness_path = actionness_path,
-            start_end_path = start_end_path,
-            prop_map_path = prop_map_path
-
-        ) for batch_idx, full_idx in enumerate(index_list))
-
-
-
-    # # For debug: one process
-    # for batch_idx, full_idx in enumerate(index_list):
-    #     infer_v_asis(
-    #             opt,
+    # Parallel(n_jobs=len(index_list))(
+    #     delayed(infer_v_asis)(
+    #         opt,
     #         video=list(test_loader.dataset.video_list)[full_idx],
     #         score_pred_v = score_pred_batch[batch_idx],
     #         loc_pred_v = loc_pred_batch[batch_idx],
@@ -120,7 +102,27 @@ def infer_batch_selectprop(model,
     #         actionness_path = actionness_path,
     #         start_end_path = start_end_path,
     #         prop_map_path = prop_map_path
-    #     )
+    #
+    #     ) for batch_idx, full_idx in enumerate(index_list))
+
+
+
+    # For debug: one process
+    for batch_idx, full_idx in enumerate(index_list):
+        infer_v_asis(
+                opt,
+            video=list(test_loader.dataset.video_list)[full_idx],
+            score_enc_v = score_enc_batch[batch_idx],
+            score_dec_v = score_dec_batch[batch_idx],
+            loc_dec_v = loc_dec_batch[batch_idx],
+            pred_action_v = pred_action_batch[batch_idx],
+            pred_start_v = pred_start_batch[batch_idx],
+            pred_end_v = pred_end_batch[batch_idx],
+            proposal_path = proposal_path,
+            actionness_path = actionness_path,
+            start_end_path = start_end_path,
+            prop_map_path = prop_map_path
+        )
 
 
 
@@ -128,8 +130,9 @@ def infer_v_asis(*args, **kwargs):
 
 
     prop_tscale = args[0]["temporal_scale"]
-    loc_pred_v = kwargs['loc_pred_v']
-    score = kwargs['score_pred_v']
+    loc_pred_v = kwargs['loc_dec_v']
+    score_enc_v = kwargs['score_enc_v']
+    score_dec_v = kwargs['score_dec_v']
     proposal_path = kwargs['proposal_path']
 
     if opt['dataset'] == 'activitynet' or opt['dataset'] == 'hacs':
@@ -139,16 +142,17 @@ def infer_v_asis(*args, **kwargs):
         win_start, win_end = kwargs['video']['frames'][0][1:3]
         offset = kwargs['video']['win_idx']
 
+    if opt['infer_score'] == 'stage1':
+        score = score_dec_v
+    elif opt['infer_score'] == 'stage1_stage2':
+        a = 1
+    elif opt['infer_score'] == 'stage0_stage1':
+        score = score_enc_v * score_dec_v
+    elif opt['infer_score'] == 'stage0_stage1_stage2':
+        a = 1
 
-    if False:
-        loc_pred_v[:, -1] = loc_pred_v[:, -1] - 1
-    elif False:
-        correct_idx = ((loc_pred_v[:, -1] < prop_tscale) * (loc_pred_v[:, 0] >=0)).nonzero()
-        loc_pred_v = loc_pred_v[correct_idx]
-        score = score[correct_idx]
-    else:
-        loc_pred_v[:,0] = loc_pred_v[:,0].clip(min=0)
-        loc_pred_v[:,1] = loc_pred_v[:,1].clip(max=prop_tscale)
+    loc_pred_v[:,0] = loc_pred_v[:,0].clip(min=0)
+    loc_pred_v[:,1] = loc_pred_v[:,1].clip(max=prop_tscale)
 
     if opt['dataset'] == 'activitynet' or opt['dataset'] == 'hacs':
         new_props = np.concatenate((loc_pred_v/prop_tscale, score[:, None], score[:, None], score[:, None]), axis=1)

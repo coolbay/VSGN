@@ -408,11 +408,7 @@ def parse_opt():
         type=float,
         default=[0.5, 0.6, 0.7])
 
-    parser.add_argument(
-        '--infer_score',
-        default='cls',
-        type=str,
-        choices=['reg_cls', 'reg', 'cls'])
+
 
     parser.add_argument(
         '--dif_lr',
@@ -466,7 +462,7 @@ def parse_opt():
         '--anchor_scale',
         nargs='+',
         type=int,
-        default=[8, 12])
+        default=[8, 12])  # 8
 
     parser.add_argument(
         '--num_head_layers',
@@ -477,6 +473,12 @@ def parse_opt():
         '--PBR_actionness',
         default=False,
         action='store_true')
+
+    parser.add_argument(
+        '--infer_score',
+        default='stage0_stage1',
+        type=str,
+        choices=['stage1', 'stage1_stage2', 'stage0_stage1', 'stage0_stage1_stage2'])
 
     args = parser.parse_args()
 

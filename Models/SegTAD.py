@@ -103,9 +103,9 @@ class SegTAD(nn.Module):
 
     def _forward_test(self, cls_pred_enc, reg_pred_enc, cls_pred_dec, reg_pred_dec):
 
-        loc_pred, score_pred = self.gen_predictions(cls_pred_enc, reg_pred_enc, cls_pred_dec, reg_pred_dec, self.anchors)
+        loc_enc, score_enc, loc_dec, score_dec = self.gen_predictions(cls_pred_enc, reg_pred_enc, cls_pred_dec, reg_pred_dec, self.anchors)
 
-        return loc_pred, score_pred
+        return loc_enc, score_enc, loc_dec, score_dec
 
 
     def FBv2(self, feat_last, input):
@@ -141,8 +141,8 @@ class SegTAD(nn.Module):
             losses_rpn = self._forward_train(cls_pred_enc, reg_pred_enc, cls_pred_dec, reg_pred_dec, gt_bbox , num_gt)
             return losses_rpn, actionness, start, end
         else:
-            loc_pred, score_pred = self._forward_test(cls_pred_enc, reg_pred_enc, cls_pred_dec, reg_pred_dec)
-            return loc_pred, score_pred, actionness, start, end
+            loc_enc, score_enc, loc_dec, score_dec = self._forward_test(cls_pred_enc, reg_pred_enc, cls_pred_dec, reg_pred_dec)
+            return loc_enc, score_enc, loc_dec, score_dec, actionness, start, end
 
 
 
