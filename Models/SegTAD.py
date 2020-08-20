@@ -10,6 +10,7 @@ from .Head import Head
 from .AnchorGenerator import AnchorGenerator
 from .loss import LossComputation
 from .ActionGenerator import ActionGenerator
+from .BoundaryRefine import BoundaryRefine
 
 class SegTAD(nn.Module):
     def __init__(self, opt):
@@ -46,6 +47,7 @@ class SegTAD(nn.Module):
 
         self.anchors = AnchorGenerator(opt).anchors
         self.rpn_loss_compute = LossComputation(opt)
+        self.bd_refine = BoundaryRefine(opt)
 
         self.gen_predictions = ActionGenerator(opt)
 
@@ -91,17 +93,25 @@ class SegTAD(nn.Module):
         )
 
 
-    def _forward_train(self, cls_pred_enc, reg_pred_enc, cls_pred_dec, reg_pred_dec, gt_bbox, num_gt):
-
-        loss_box_cls0, loss_box_reg0, loss_box_cls1, loss_box_reg1 = self.rpn_loss_compute(cls_pred_enc, reg_pred_enc, cls_pred_dec, reg_pred_dec, gt_bbox, num_gt, self.anchors)
-        losses = {
-            "loss_cls_enc": loss_box_cls0,
-            "loss_reg_enc": loss_box_reg0,
-            "loss_cls_dec": loss_box_cls1,
-            "loss_reg_dec": loss_box_reg1,
-        }
-
-        return losses
+    # def _forward_train(self, cls_pred_enc, reg_pred_enc, cls_pred_dec, reg_pred_dec, gt_bbox, num_gt):
+    #
+    #     loss_box_cls0, loss_box_reg0, loss_box_cls1, loss_box_reg1, loc_dec = self.rpn_loss_compute(
+    #         cls_pred_enc,
+    #         reg_pred_enc,
+    #         cls_pred_dec,
+    #         reg_pred_dec,
+    #         gt_bbox,
+    #         num_gt,
+    #         self.anchors)
+    #
+    #     losses = {
+    #         "loss_cls_enc": loss_box_cls0,
+    #         "loss_reg_enc": loss_box_reg0,
+    #         "loss_cls_dec": loss_box_cls1,
+    #         "loss_reg_dec": loss_box_reg1,
+    #     }
+    #
+    #     return losses, loc_dec
 
 
     def _forward_test(self, cls_pred_enc, reg_pred_enc, cls_pred_dec, reg_pred_dec):
@@ -118,34 +128,60 @@ class SegTAD(nn.Module):
         return self.FBV2_final(torch.cat((feat1, feat2), dim=1))
 
     def forward(self, input, gt_iou_map, gt_bbox = None, num_gt = None):
-        # B = input.shape[0]
 
         feats_enc, feats_dec = self.fpn(input)
 
+        # Stage 0, Stage 1
         cls_pred_enc, reg_pred_enc = self.head_enc(feats_enc)
         cls_pred_dec, reg_pred_dec = self.head_dec(feats_dec)
 
-        if self.PBR_actionness:
-            feat2 = self.FBv2(feats_dec[-1], input)
+        if self.is_train == 'true':
+            losses_rpn, loc_dec = self.rpn_loss_compute(
+                cls_pred_enc,
+                reg_pred_enc,
+                cls_pred_dec,
+                reg_pred_dec,
+                self.anchors,
+                gt_bbox,
+                num_gt)
         else:
-            feat2 = feats_dec[-1]
+            score_enc, loc_enc, score_dec, loc_dec = self.gen_predictions(
+                cls_pred_enc,
+                reg_pred_enc,
+                cls_pred_dec,
+                reg_pred_dec,
+                self.anchors)
 
-        # Action/start/end scores
-        actionness = self.head_actionness(feat2)
-        start = self.head_startness(feat2).squeeze(1)
-        end = self.head_endness(feat2).squeeze(1)
+        # Stage 2
+        if self.PBR_actionness:
+            feat_frmlvl = self.FBv2(feats_dec[-1], input)
+        else:
+            feat_frmlvl = feats_dec[-1]
 
+        # Stage 2: Action/start/end scores
+        actionness = self.head_actionness(feat_frmlvl)
+        start = self.head_startness(feat_frmlvl).squeeze(1)
+        end = self.head_endness(feat_frmlvl).squeeze(1)
 
         actionness = F.interpolate(actionness, size=input.size()[2:], mode='linear', align_corners=True)
         start = F.interpolate(start[:, None, :], size=input.size()[2:], mode='linear', align_corners=True).squeeze(1)
         end = F.interpolate(end[:, None, :], size=input.size()[2:], mode='linear', align_corners=True).squeeze(1)
 
+        # Stage 2: Boundary refinement
+        start_offsets, end_offsets  = self.bd_refine(loc_dec, feat_frmlvl)
+
         if self.is_train == 'true':
-            losses_rpn = self._forward_train(cls_pred_enc, reg_pred_enc, cls_pred_dec, reg_pred_dec, gt_bbox , num_gt)
+            loss_reg_st2 = self.bd_refine.cal_loss(start_offsets,
+                                                  end_offsets,
+                                                  loc_dec,
+                                                  gt_bbox,
+                                                  num_gt)
+            losses_rpn['loss_reg_st2'] = loss_reg_st2
+
             return losses_rpn, actionness, start, end
         else:
-            loc_enc, score_enc, loc_dec, score_dec = self._forward_test(cls_pred_enc, reg_pred_enc, cls_pred_dec, reg_pred_dec)
-            return loc_enc, score_enc, loc_dec, score_dec, actionness, start, end
+            loc_st2 = self.bd_refine.update_bd(loc_dec, start_offsets, end_offsets)
+            return loc_enc, score_enc, loc_dec, score_dec, loc_st2, actionness, start, end
 
 
 

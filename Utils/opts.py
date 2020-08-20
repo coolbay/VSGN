@@ -475,6 +475,11 @@ def parse_opt():
         action='store_true')
 
     parser.add_argument(
+        '--bd_refine_stage2',
+        default=False,
+        action='store_true')
+
+    parser.add_argument(
         '--infer_score',
         default='stage1_stage2',
         type=str,

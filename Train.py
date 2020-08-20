@@ -150,7 +150,7 @@ def train_SegTAD_epoch(data_loader, model, optimizer, epoch, writer, opt, bm_mas
         # if n_iter % 100 == 0:
         #     plot_dist_targets(all_gt_area) # by Catherine
 
-        losses_rpn, pred_action, pred_start, pred_end = model(input_data, gt_bd_map, gt_bbox, num_gt)
+        losses, pred_action, pred_start, pred_end = model(input_data, gt_bd_map, gt_bbox, num_gt)
 
         # get_pos_area(pos_idx_st_end.detach().cpu(), all_pos_area) # by Catherine
         # if n_iter % 100 == 0:
@@ -168,9 +168,9 @@ def train_SegTAD_epoch(data_loader, model, optimizer, epoch, writer, opt, bm_mas
         # cost_boundary = torch.zeros((1,), device=pred_bd_map.device)
 
         # Overall loss
-        loss_stage0 = torch.mean(losses_rpn['loss_cls_enc'] + losses_rpn['loss_reg_enc'])
-        loss_stage1 = torch.mean(losses_rpn['loss_cls_dec'] + losses_rpn['loss_reg_dec'])
-        loss_stage2 = cost_actionness + cost_boundary
+        loss_stage0 = torch.mean(losses['loss_cls_enc'] + losses['loss_reg_enc'])
+        loss_stage1 = torch.mean(losses['loss_cls_dec'] + losses['loss_reg_dec'])
+        loss_stage2 = cost_actionness + cost_boundary + torch.mean(losses['loss_reg_st2'])
 
         cost = loss_stage0 + loss_stage1 + loss_stage2
 
