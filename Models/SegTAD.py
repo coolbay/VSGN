@@ -51,16 +51,16 @@ class SegTAD(nn.Module):
 
         if self.PBR_actionness:
             self.FBv2_last = nn.Sequential(
-                nn.ConvTranspose1d(in_channels=self.hidden_dim_1d, out_channels=self.hidden_dim_1d,kernel_size=3,stride=2,padding=1, output_padding=1, groups=1),
-                nn.ReLU(inplace=True),
-                nn.ConvTranspose1d(in_channels=self.hidden_dim_1d, out_channels=self.hidden_dim_1d,kernel_size=3,stride=2,padding=1, output_padding=1, groups=1),
-                nn.ReLU(inplace=True),
-            )
-            self.FBV2_input = nn.Sequential(
-                nn.Conv1d(in_channels=self.feat_dim, out_channels=self.hidden_dim_1d,kernel_size=3,stride=1,padding=1, groups=1),
-                nn.ReLU(inplace=True),
                 nn.Conv1d(in_channels=self.hidden_dim_1d, out_channels=self.hidden_dim_1d,kernel_size=3,stride=1,padding=1, groups=1),
                 nn.ReLU(inplace=True),
+                # nn.ConvTranspose1d(in_channels=self.hidden_dim_1d, out_channels=self.hidden_dim_1d,kernel_size=3,stride=2,padding=1, output_padding=1, groups=1),
+                # nn.ReLU(inplace=True),
+            )
+            self.FBV2_input = nn.Sequential(
+                nn.Conv1d(in_channels=self.feat_dim, out_channels=self.hidden_dim_1d,kernel_size=3,stride=4,padding=1, groups=1),
+                nn.ReLU(inplace=True),
+                # nn.Conv1d(in_channels=self.hidden_dim_1d, out_channels=self.hidden_dim_1d,kernel_size=3,stride=1,padding=1, groups=1),
+                # nn.ReLU(inplace=True),
             )
             self.FBV2_final = nn.Sequential(
                 nn.Conv1d(in_channels=self.hidden_dim_1d * 2, out_channels=self.hidden_dim_1d,kernel_size=3,stride=1,padding=1, groups=1),
@@ -70,18 +70,21 @@ class SegTAD(nn.Module):
         # Generate action/start/end scores
         self.head_actionness = nn.Sequential(
             nn.Conv1d(self.hidden_dim_1d, self.hidden_dim_1d, kernel_size=3, padding=1, groups=1),
+            nn.GroupNorm(32, self.hidden_dim_1d),
             nn.ReLU(inplace=True),
             nn.Conv1d(self.hidden_dim_1d, 1, kernel_size=1),
             nn.Sigmoid()
         )
         self.head_startness = nn.Sequential(
             nn.Conv1d(self.hidden_dim_1d, self.hidden_dim_1d, kernel_size=3, padding=1, groups=1),
+            nn.GroupNorm(32, self.hidden_dim_1d),
             nn.ReLU(inplace=True),
             nn.Conv1d(self.hidden_dim_1d, 1, kernel_size=1),
             nn.Sigmoid()
         )
         self.head_endness = nn.Sequential(
             nn.Conv1d(self.hidden_dim_1d, self.hidden_dim_1d, kernel_size=3, padding=1, groups=1),
+            nn.GroupNorm(32, self.hidden_dim_1d),
             nn.ReLU(inplace=True),
             nn.Conv1d(self.hidden_dim_1d, 1, kernel_size=1),
             nn.Sigmoid()
@@ -132,10 +135,10 @@ class SegTAD(nn.Module):
         start = self.head_startness(feat2).squeeze(1)
         end = self.head_endness(feat2).squeeze(1)
 
-        if not self.PBR_actionness:
-            actionness = F.interpolate(actionness, size=input.size()[2:], mode='linear', align_corners=True)
-            start = F.interpolate(start[:, None, :], size=input.size()[2:], mode='linear', align_corners=True).squeeze(1)
-            end = F.interpolate(end[:, None, :], size=input.size()[2:], mode='linear', align_corners=True).squeeze(1)
+
+        actionness = F.interpolate(actionness, size=input.size()[2:], mode='linear', align_corners=True)
+        start = F.interpolate(start[:, None, :], size=input.size()[2:], mode='linear', align_corners=True).squeeze(1)
+        end = F.interpolate(end[:, None, :], size=input.size()[2:], mode='linear', align_corners=True).squeeze(1)
 
         if self.is_train == 'true':
             losses_rpn = self._forward_train(cls_pred_enc, reg_pred_enc, cls_pred_dec, reg_pred_dec, gt_bbox , num_gt)
