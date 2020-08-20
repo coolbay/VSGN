@@ -72,21 +72,21 @@ class SegTAD(nn.Module):
         # Generate action/start/end scores
         self.head_actionness = nn.Sequential(
             nn.Conv1d(self.hidden_dim_1d, self.hidden_dim_1d, kernel_size=3, padding=1, groups=1),
-            nn.GroupNorm(32, self.hidden_dim_1d),
+            # nn.GroupNorm(32, self.hidden_dim_1d),
             nn.ReLU(inplace=True),
             nn.Conv1d(self.hidden_dim_1d, 1, kernel_size=1),
             nn.Sigmoid()
         )
         self.head_startness = nn.Sequential(
             nn.Conv1d(self.hidden_dim_1d, self.hidden_dim_1d, kernel_size=3, padding=1, groups=1),
-            nn.GroupNorm(32, self.hidden_dim_1d),
+            # nn.GroupNorm(32, self.hidden_dim_1d),
             nn.ReLU(inplace=True),
             nn.Conv1d(self.hidden_dim_1d, 1, kernel_size=1),
             nn.Sigmoid()
         )
         self.head_endness = nn.Sequential(
             nn.Conv1d(self.hidden_dim_1d, self.hidden_dim_1d, kernel_size=3, padding=1, groups=1),
-            nn.GroupNorm(32, self.hidden_dim_1d),
+            # nn.GroupNorm(32, self.hidden_dim_1d),
             nn.ReLU(inplace=True),
             nn.Conv1d(self.hidden_dim_1d, 1, kernel_size=1),
             nn.Sigmoid()
