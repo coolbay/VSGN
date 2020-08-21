@@ -60,7 +60,8 @@ def Infer_SegTAD(opt):
 
     with torch.no_grad():
         # for index_list, input_data, gt_actionness, gt_act_map in test_loader:
-        for index_list, input_data in test_loader:
+        for i, (index_list, input_data) in enumerate(test_loader):
+
             infer_batch_selectprop(model, index_list, input_data, test_loader, proposal_path,
                                    actionness_path, start_end_path, prop_map_path)
 
@@ -89,32 +90,12 @@ def infer_batch_selectprop(model,
 
 
 
-    # Parallel(n_jobs=len(index_list))(
-    #     delayed(infer_v_asis)(
-    #         opt,
-    #         video=list(test_loader.dataset.video_list)[full_idx],
-    #         score_pred_v = score_pred_batch[batch_idx],
-    #         loc_pred_v = loc_pred_batch[batch_idx],
-    #         pred_action_v = pred_action_batch[batch_idx],
-    #         pred_start_v = pred_start_batch[batch_idx],
-    #         pred_end_v = pred_end_batch[batch_idx],
-    #         proposal_path = proposal_path,
-    #         actionness_path = actionness_path,
-    #         start_end_path = start_end_path,
-    #         prop_map_path = prop_map_path
-    #
-    #     ) for batch_idx, full_idx in enumerate(index_list))
-
-
-
-    # For debug: one process
-    for batch_idx, full_idx in enumerate(index_list):
-        infer_v_asis(
-                opt,
+    Parallel(n_jobs=len(index_list))(
+        delayed(infer_v_asis)(
+            opt,
             video=list(test_loader.dataset.video_list)[full_idx],
-            score_enc_v = score_enc_batch[batch_idx],
-            score_dec_v = score_dec_batch[batch_idx],
-            loc_dec_v = loc_dec_batch[batch_idx],
+            score_pred_v = score_pred_batch[batch_idx],
+            loc_pred_v = loc_pred_batch[batch_idx],
             pred_action_v = pred_action_batch[batch_idx],
             pred_start_v = pred_start_batch[batch_idx],
             pred_end_v = pred_end_batch[batch_idx],
@@ -122,7 +103,28 @@ def infer_batch_selectprop(model,
             actionness_path = actionness_path,
             start_end_path = start_end_path,
             prop_map_path = prop_map_path
-        )
+
+        ) for batch_idx, full_idx in enumerate(index_list))
+
+
+
+    # # For debug: one process
+    # for batch_idx, full_idx in enumerate(index_list):
+    #
+    #     infer_v_asis(
+    #             opt,
+    #         video=list(test_loader.dataset.video_list)[full_idx],
+    #         score_enc_v = score_enc_batch[batch_idx],
+    #         score_dec_v = score_dec_batch[batch_idx],
+    #         loc_dec_v = loc_dec_batch[batch_idx],
+    #         pred_action_v = pred_action_batch[batch_idx],
+    #         pred_start_v = pred_start_batch[batch_idx],
+    #         pred_end_v = pred_end_batch[batch_idx],
+    #         proposal_path = proposal_path,
+    #         actionness_path = actionness_path,
+    #         start_end_path = start_end_path,
+    #         prop_map_path = prop_map_path
+    #     )
 
 
 
@@ -144,8 +146,8 @@ def infer_v_asis(*args, **kwargs):
         win_start, win_end = kwargs['video']['frames'][0][1:3]
         offset = kwargs['video']['win_idx']
 
-    loc_pred_v[:,0] = loc_pred_v[:,0].clip(min=0)
-    loc_pred_v[:,1] = loc_pred_v[:,1].clip(max=prop_tscale-1)
+    loc_pred_v[:,0] = loc_pred_v[:,0].clip(min=0, max=prop_tscale-1)
+    loc_pred_v[:,1] = loc_pred_v[:,1].clip(min=0, max=prop_tscale-1)
 
     start_score = (pred_start_v[np.ceil(loc_pred_v[:,0]).astype('int32')] + pred_start_v[np.floor(loc_pred_v[:,0]).astype('int32')]) / 2
     end_score = (pred_end_v[np.ceil(loc_pred_v[:,1]).astype('int32')] + pred_end_v[np.floor(loc_pred_v[:,1]).astype('int32')]) / 2
