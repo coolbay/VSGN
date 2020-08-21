@@ -108,7 +108,7 @@ def infer_batch_selectprop(model,
         ) for batch_idx, full_idx in enumerate(index_list))
 
 
-
+    # test
     # # For debug: one process
     # for batch_idx, full_idx in enumerate(index_list):
     #
