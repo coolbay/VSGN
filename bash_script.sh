@@ -1,8 +1,8 @@
 #!/bin/bash
 
 #SBATCH --job-name stl
-#SBATCH --time=3-00:00:00
-#SBATCH --gres=gpu:v100:4
+#SBATCH --time=0-04:00:00
+#SBATCH --gres=gpu:4
 #SBATCH -o gpu.%A.out
 #SBATCH -e gpu.%A.err
 #SBATCH --cpus-per-task 20
@@ -24,7 +24,8 @@ then
 fi
 
 IOU_BOUND='0.45 0.95'
-TRAIN_FLAG="${DATASET}_${DATE_TIME}"
+TRAIN_LR=0.00005
+TRAIN_FLAG="${DATASET}_${DATE_TIME}_lr${TRAIN_LR}"
 CKP_PATH=./checkpoint_${TRAIN_FLAG}
 OUTPUT_PATH=./output_${TRAIN_FLAG}
 LOG_TRAIN="${CKP_PATH}/log_train.txt"
@@ -36,7 +37,7 @@ then
     DATA_PATH="/home/xum/dataset/${FEAT_NAME}"
     module load cuda
     source activate pytorch110
-elif [ $1 == 'kw60748' ] || [ $1 == 'kw60747' ] || [ $1 == 'kw60746' ] || [ $1 == 'kw60623' ]
+elif [ $1 == 'kw60748' ] || [ $1 == 'kw60747' ] || [ $1 == 'kw60746' ] || [ $1 == 'kw60623' ] ||  [ $1 == 'kw60661' ]
 then
     DATA_PATH="/home/zhaoc/datasets/${FEAT_NAME}"
     source activate pytorch110
@@ -60,7 +61,8 @@ then
         --checkpoint_path ${CKP_PATH}  \
         --is_train true   \
         --dataset ${DATASET}   \
-        --batch_size  128  | tee -a "$LOG_TRAIN"
+        --batch_size  256  \
+	--train_lr ${TRAIN_LR}  | tee -a "$LOG_TRAIN"
 fi
 
 if [[ $2 =~ .*'infer'.* ]]
@@ -79,7 +81,7 @@ then
         --checkpoint_path ${CKP_PATH}   \
         --is_train false  \
         --dataset ${DATASET}   \
-        --batch_size  8  | tee -a "$LOG_TEST"
+        --batch_size  256  | tee -a "$LOG_TEST"
 fi
 
 if [[ $2 =~ .*'eval'.* ]]

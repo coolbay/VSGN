@@ -72,6 +72,8 @@ logs/*
 output/*
 checkpoint/*
 runs/*
+*.err
+*.out
 
 checkpoint*
 output*
