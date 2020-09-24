@@ -95,13 +95,13 @@ def Train_SegTAD(opt):
 
     train_loader = torch.utils.data.DataLoader(VideoDataSet(opt, subset="train"),
                                                batch_size=opt["batch_size"], shuffle=True, #  shuffle=True by Catherine for statsitics
-                                               num_workers=10, pin_memory=False,
+                                               num_workers=20, pin_memory=False,
                                                # collate_fn=BatchCollator(),
                                                drop_last=True)  # num_workers=4, pin_memory=True,drop_last=True)
 
     test_loader = torch.utils.data.DataLoader(VideoDataSet(opt, subset="validation"),
                                               batch_size=opt["batch_size"], shuffle=False,
-                                              num_workers=10, pin_memory=False,
+                                              num_workers=20, pin_memory=False,
                                               # collate_fn=BatchCollator(),
                                               drop_last=True)  # num_workers=4, pin_memory=True,drop_last=True)
 
