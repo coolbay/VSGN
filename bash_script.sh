@@ -62,7 +62,7 @@ then
         --is_train true   \
         --dataset ${DATASET}   \
         --batch_size  256  \
-	--train_lr ${TRAIN_LR}  | tee -a "$LOG_TRAIN"
+	    --train_lr ${TRAIN_LR}  | tee -a "$LOG_TRAIN"
 fi
 
 if [[ $2 =~ .*'infer'.* ]]
