@@ -44,7 +44,7 @@ then
 fi
 
 IOU_BOUND='0.45 0.95'
-for TRAIN_LR in 0.001 0.002 0.003 0.004 0.005 0.006 0.007 0.008; do
+for TRAIN_LR in 0.002 0.003 0.004 0.005 0.006 0.007 0.008 0.009 0.01; do
 
     DATE_TIME=`date +'%Y-%m-%d_%H-%M'`
     TRAIN_FLAG="${DATASET}_${DATE_TIME}_lr${TRAIN_LR}"
