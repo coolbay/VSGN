@@ -485,6 +485,11 @@ def parse_opt():
         type=str,
         choices=['stage1', 'stage1_stage2', 'stage0_stage1', 'stage0_stage1_stage2'])
 
+    parser.add_argument(
+        '--resume',
+        default=False,
+        action='store_true')
+
     args = parser.parse_args()
 
     return args

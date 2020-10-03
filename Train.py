@@ -38,37 +38,12 @@ class BatchCollator(object):
         gt_bbox = transposed_batch[5]
         return video_data, match_score_action, match_score_start, match_score_end, gt_iou_map, gt_bbox
 
-
 def Train_SegTAD(opt):
     writer = SummaryWriter()
     model = SegTAD(opt)
-
-    # If only train detector, then load the pretrained segmentor
-    if False: #opt['pretrain_model'] == 'FeatureEnhancer':
-        checkpoint = torch.load(opt["checkpoint_path"] + "/best.pth.tar")
-        base_dict = {}
-        for k, v in list(checkpoint['state_dict'].items()):
-            if 'FeatureEnhancer' in k:
-                # base_dict = {'.'.join(k.split('.')[1:]): v }
-                base_dict.setdefault('.'.join(k.split('.')[1:]), v)
-        model.load_state_dict(base_dict, strict=False)
-        print('Load pretrained model successfully!')
-    # If train the full network, train from scrach or load pretrained model if it exists
-    elif False: #opt['pretrain_model'] == 'full':
-        if os.path.exists(opt["checkpoint_path"] + "/best.pth.tar"): #CHANGE
-            checkpoint = torch.load(opt["checkpoint_path"] + "/best.pth.tar")
-            base_dict = {}
-            for k, v in list(checkpoint['state_dict'].items()):
-                # base_dict = {'.'.join(k.split('.')[1:]): v }
-                base_dict.setdefault('.'.join(k.split('.')[1:]), v)
-            model.load_state_dict(base_dict, strict=False)
-            print('Load pretrained model successfully!')
-
     device = "cuda"
     model = torch.nn.DataParallel(model)
     model.to(device)
-
-
 
     if opt['dif_lr'] == 'true':
         ig_params1 = list(map(id, model.module.FeatureEnhancer.parameters()))
@@ -85,6 +60,21 @@ def Train_SegTAD(opt):
     else:
         optimizer = optim.Adam(model.parameters(), lr=opt["train_lr"], weight_decay=opt["weight_decay"])
 
+    if opt['resume']:
+        if os.path.exists(opt["checkpoint_path"] + "/checkpoint.pth.tar"): #CHANGE
+            checkpoint = torch.load(opt["checkpoint_path"] + "/checkpoint.pth.tar")
+            base_dict = {}
+            for k, v in list(checkpoint['state_dict'].items()):
+                # base_dict = {'.'.join(k.split('.')[1:]): v }
+                base_dict.setdefault('.'.join(k.split('.')[1:]), v)
+            model.load_state_dict(base_dict, strict=False)
+            optimizer.load_state_dict(checkpoint['optimizer'])
+            start_epoch = checkpoint['epoch']
+            print('Load pretrained model successfully!')
+    else:
+        start_epoch = 0
+
+
 
     if opt['dataset'] == 'activitynet':
         VideoDataSet = VideoDataSet_anet
@@ -93,24 +83,38 @@ def Train_SegTAD(opt):
     elif opt['dataset'] == 'hacs':
         VideoDataSet = VideoDataSet_hacs
 
+    # device_id = 0,1
+    # torch.cuda.set_device(torch.device("cuda:" + str(device_id) if torch.cuda.is_available() else "cpu"))
+    # torch.set_default_tensor_type('torch.cuda.FloatTensor')
+    kwargs = {'num_workers': 20, 'pin_memory': True, 'drop_last': True}
+
     train_loader = torch.utils.data.DataLoader(VideoDataSet(opt, subset="train"),
-                                               batch_size=opt["batch_size"], shuffle=True, #  shuffle=True by Catherine for statsitics
-                                               num_workers=20, pin_memory=False,
-                                               # collate_fn=BatchCollator(),
-                                               drop_last=True)  # num_workers=4, pin_memory=True,drop_last=True)
+                                               batch_size=opt["batch_size"], shuffle=True,
+                                               **kwargs)
 
     test_loader = torch.utils.data.DataLoader(VideoDataSet(opt, subset="validation"),
                                               batch_size=opt["batch_size"], shuffle=False,
-                                              num_workers=20, pin_memory=False,
-                                              # collate_fn=BatchCollator(),
-                                              drop_last=True)  # num_workers=4, pin_memory=True,drop_last=True)
+                                              **kwargs)
 
     scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=opt["step_size"], gamma=opt["step_gamma"])
 
     bm_mask = get_mask(opt["prop_temporal_scale"])
-    for epoch in range(opt["num_epoch"]):
+    for epoch in range(start_epoch, opt["num_epoch"]):
+
         train_SegTAD_epoch(train_loader, model, optimizer, epoch, writer, opt, bm_mask)
-        test_SegTAD_epoch(test_loader, model, epoch, writer, opt, bm_mask)
+        epoch_loss = test_SegTAD_epoch(test_loader, model, epoch, writer, opt, bm_mask)
+
+        print((datetime.datetime.now()))
+        state = {'epoch': epoch + 1,
+                 'state_dict': model.state_dict(),
+                 'optimizer': optimizer.state_dict()}
+        torch.save(state, opt["checkpoint_path"] + "/checkpoint.pth.tar")
+        if epoch_loss < model.module.tem_best_loss:
+            print((datetime.datetime.now()))
+            print('The best model up to now is from Epoch {}'.format(epoch))
+            model.module.tem_best_loss = np.mean(epoch_loss)
+            torch.save(state, opt["checkpoint_path"] + "/best.pth.tar")
+
         scheduler.step()
     writer.close()
 
@@ -313,14 +317,7 @@ def test_SegTAD_epoch(data_loader, model, epoch, writer, opt, bm_mask):
               epoch_loss_stage2_reg/(n_iter + 1),
           ))
 
-
-    print((datetime.datetime.now()))
-    state = {'epoch': epoch + 1,
-             'state_dict': model.state_dict()}
-    torch.save(state, opt["checkpoint_path"] + "/checkpoint.pth.tar")
-    if epoch_loss < model.module.tem_best_loss:
-        model.module.tem_best_loss = np.mean(epoch_loss)
-        torch.save(state, opt["checkpoint_path"] + "/best.pth.tar")
+    return epoch_loss
 
 
 
