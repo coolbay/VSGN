@@ -219,6 +219,7 @@ def train_SegTAD_epoch(data_loader, model, optimizer, epoch, writer, opt, bm_mas
           "2 bd: %.04f, "
           "2 reg: %.04f, " % (
               epoch,
+              epoch_loss / (n_iter + 1),
               epoch_loss_stage0_cls/(n_iter + 1),
               epoch_loss_stage0_reg/(n_iter + 1),
               epoch_loss_stage1_cls/(n_iter + 1),
@@ -302,6 +303,7 @@ def test_SegTAD_epoch(data_loader, model, epoch, writer, opt, bm_mask):
           "2 bd: %.04f, "
           "2 reg: %.04f, " % (
               epoch,
+              epoch_loss / (n_iter + 1),
               epoch_loss_stage0_cls/(n_iter + 1),
               epoch_loss_stage0_reg/(n_iter + 1),
               epoch_loss_stage1_cls/(n_iter + 1),
