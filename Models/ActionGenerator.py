@@ -23,9 +23,12 @@ class ActionGenerator(object):
         all_anchors = torch.cat(anchors, dim=1)          # bs, levels*positions*scales, left-right
         loc_enc, score_enc, label_enc = self._call_one_stage(cls_pred_enc, reg_pred_enc, all_anchors)
 
+
         # Second stage: decoder
         anchors_update = torch.stack(loc_enc, dim=0)
-        loc_dec, score_dec, label_dec = self._call_one_stage(cls_pred_enc, reg_pred_enc, anchors_update)
+        cls_pred_dec = [cls_pred_dec[i] for i in range(len(cls_pred_dec)-1, -1, -1)]
+        reg_pred_dec = [reg_pred_dec[i] for i in range(len(reg_pred_dec)-1, -1, -1)]
+        loc_dec, score_dec, label_dec = self._call_one_stage(cls_pred_dec, reg_pred_dec, anchors_update)
 
         return torch.stack(score_enc, dim=0), torch.stack(loc_enc, dim=0), torch.stack(score_dec, dim=0), torch.stack(loc_dec, dim=0)
 
