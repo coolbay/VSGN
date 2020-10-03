@@ -285,7 +285,7 @@ def parse_opt():
 
     parser.add_argument(
         '--out_prop_map',
-        default='false',
+        default='true',
         type=str,
         choices=['true', 'false'])
 
