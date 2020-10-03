@@ -293,7 +293,7 @@ def test_SegTAD_epoch(data_loader, model, epoch, writer, opt, bm_mask):
     writer.add_scalars('data/loss_stage2_bd', {'test': epoch_loss_stage2_bd / (n_iter + 1)}, epoch)
     writer.add_scalars('data/loss_stage2_reg', {'test': epoch_loss_stage2_reg / (n_iter + 1)}, epoch)
 
-    print("Test loss (epoch %d): "
+    print("Testting loss (epoch %d): "
           "total %.04f, "
           "0 cls: %.04f, "
           "0 reg: %.04f, "
