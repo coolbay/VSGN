@@ -54,7 +54,13 @@ fi
 # Choose train or infer
 if [[ $2 =~ .*'train'.* ]]
 then
-    mkdir -p ${CKP_PATH}
+    if [ $3 ]
+    then
+        TRAIN_FLAG=$3
+        CKP_PATH=./checkpoint_${TRAIN_FLAG}
+    else
+        mkdir -p ${CKP_PATH}
+    fi
     echo Logging output to "$LOG_TRAIN"
     python Train.py  --iou_thr_bound ${IOU_BOUND} \
         --feature_path ${DATA_PATH} \

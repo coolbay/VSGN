@@ -71,6 +71,8 @@ def Train_SegTAD(opt):
             optimizer.load_state_dict(checkpoint['optimizer'])
             start_epoch = checkpoint['epoch']
             print('Load pretrained model successfully!')
+        else:
+            start_epoch = 0
     else:
         start_epoch = 0
 
