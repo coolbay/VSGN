@@ -2,10 +2,11 @@
 
 #SBATCH --job-name stl
 #SBATCH --time=0-04:00:00
-#SBATCH --gres=gpu:4
 #SBATCH -o gpu.%A.out
 #SBATCH -e gpu.%A.err
-#SBATCH --cpus-per-task 20
+
+#SBATCH --gres=gpu:4
+#SBATCH --cpus 60
 #SBATCH --mem 100GB
 
 set -ex
