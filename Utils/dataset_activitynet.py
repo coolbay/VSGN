@@ -129,12 +129,21 @@ class VideoDataSet(data.Dataset):
 
         # Get video feature
         video_data = torch.zeros(self.feat_dim, self.temporal_scale)
+
         rgb_features = h5py.File(os.path.join(self.feature_path, 'rgb.h5'), 'r')
         rgb_data = rgb_features[video_name][:]
         rgb_data = torch.Tensor(rgb_data)
         rgb_data = torch.transpose(rgb_data, 0, 1)
+        num_frms = rgb_data.shape[-1]
+
+        flow_features = h5py.File(os.path.join(self.feature_path, 'flow.h5'), 'r')
+        flow_data = flow_features[video_name][:]
+        flow_data = torch.Tensor(flow_data)
+        flow_data = torch.transpose(flow_data, 0, 1)
+        flow_data = F.interpolate(flow_data[None,:,:], size=num_frms, mode='linear', align_corners=True).squeeze(0)
+
         num_frms = min(rgb_data.shape[-1], self.temporal_scale)
-        video_data[:, :num_frms] = rgb_data[:, :num_frms]
+        video_data[:, :num_frms] = torch.cat((rgb_data[:, :num_frms], flow_data[:,:num_frms]), dim=0)
 
         # Get annotations
         video_info = self.video_dict[video_name]

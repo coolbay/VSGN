@@ -185,7 +185,7 @@ def parse_opt():
     parser.add_argument(
         '--feat_dim',
         type=int,
-        default=1024)
+        default=2048)
     parser.add_argument(
         '--bb_hidden_dim',
         type=int,
