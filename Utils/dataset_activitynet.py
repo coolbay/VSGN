@@ -31,6 +31,7 @@ class VideoDataSet(data.Dataset):
         self.video_anno_path = opt["video_anno"]
         self.anet_classes = opt["anet_classes"]
         self.binary_actionness = opt['binary_actionness']
+        self.feat_dim = opt['feat_dim']
         self._getDatasetDict()
         self._get_match_map()
 
@@ -96,9 +97,7 @@ class VideoDataSet(data.Dataset):
         "%s subset video numbers: %d" % (self.subset, len(self.video_list))
 
     def __getitem__(self, index):
-        video_data, anchor_xmin, anchor_xmax = self._get_base_data(index)
-
-        match_score_action, gt_iou_map, match_score_start, match_score_end, gt_bbox, num_gt  = self._get_train_label(index, anchor_xmin, anchor_xmax)
+        video_data, match_score_action, gt_iou_map, match_score_start, match_score_end, gt_bbox, num_gt  = self._get_train_data_label(index)
 
         if self.mode == "train":
             return video_data, match_score_action, match_score_start, match_score_end, gt_iou_map, gt_bbox, num_gt
@@ -121,37 +120,27 @@ class VideoDataSet(data.Dataset):
         self.match_map = match_map  # duration is same in row, start is same in col
 
 
-    def _get_base_data(self, index):
+    def _get_train_data_label(self, index):
 
-        video_name = list(self.video_list)[index]
+        # General data
         anchor_xmin = [self.temporal_gap * i for i in range(self.temporal_scale)]
         anchor_xmax = [self.temporal_gap * i for i in range(1, self.temporal_scale + 1)]
+        video_name = list(self.video_list)[index]
 
+        # Get video feature
+        video_data = torch.zeros(self.feat_dim, self.temporal_scale)
         rgb_features = h5py.File(os.path.join(self.feature_path, 'rgb.h5'), 'r')
         rgb_data = rgb_features[video_name][:]
         rgb_data = torch.Tensor(rgb_data)
         rgb_data = torch.transpose(rgb_data, 0, 1)
-        rgb_data = F.interpolate(rgb_data[None,:,:], size=self.temporal_scale, mode='linear', align_corners=True).squeeze(0)
+        num_frms = min(rgb_data.shape[-1], self.temporal_scale)
+        video_data[:, :num_frms] = rgb_data[:, :num_frms]
 
-        # flow_features = h5py.File(os.path.join(self.feature_path, 'flow.h5'), 'r')
-        # flow_data = flow_features[video_name][:]
-        # flow_data = torch.Tensor(flow_data)
-        # flow_data = torch.transpose(flow_data, 0, 1)
-        # flow_data = F.interpolate(flow_data[None,:,:], size=self.temporal_scale, mode='linear', align_corners=True).squeeze(0)
-        #
-        # video_data = torch.cat((rgb_data, flow_data), dim=0)
-        video_data = rgb_data
-
-        return video_data, anchor_xmin, anchor_xmax
-
-    def _get_train_label(self, index, anchor_xmin, anchor_xmax):
-        video_name = list(self.video_list)[index]
+        # Get annotations
         video_info = self.video_dict[video_name]
-        video_frame = video_info['duration_frame']
-        video_second = video_info['duration_second']
-        feature_frame = video_info['feature_frame']
-        corrected_second = float(feature_frame) / video_frame * video_second
         video_labels = video_info['annotations']
+        video_second = video_info['duration_second']
+        fps = num_frms / video_second
 
 
         # Get gt_iou_map
@@ -159,11 +148,14 @@ class VideoDataSet(data.Dataset):
         gt_iou_map = []
         for j in range(len(video_labels)):
             tmp_info = video_labels[j]
-            tmp_start = max(min(1, tmp_info['segment'][0] / corrected_second), 0)
-            tmp_end = max(min(1, tmp_info['segment'][1] / corrected_second), 0)
+            tmp_start_f = max(min(self.temporal_scale, tmp_info['segment'][0] * fps), 0)
+            tmp_end_f = max(min(self.temporal_scale, tmp_info['segment'][1] * fps), 0)
 
-            # tmp_start = max(min(1, tmp_info['segment'][0] / corrected_second), 0)  / 4. # by Catherine
-            # tmp_end = max(min(1, tmp_info['segment'][1] / corrected_second), 0) / 4. # by Catherine
+            if tmp_start_f > self.temporal_scale:
+                continue
+            tmp_start = tmp_start_f / self.temporal_scale
+            tmp_end = tmp_end_f / self.temporal_scale
+
             tmp_class = self.classes[tmp_info['label']]
             gt_bbox.append([tmp_start, tmp_end, tmp_class])
 
@@ -176,9 +168,6 @@ class VideoDataSet(data.Dataset):
         gt_iou_map = np.array(gt_iou_map)
         gt_iou_map = np.max(gt_iou_map, axis=0)
         gt_iou_map = torch.Tensor(gt_iou_map)
-
-        if torch.sum(gt_iou_map) == 0:
-            a = 1
 
         # Get actionness scores
         match_score_action = [0] * self.temporal_scale
@@ -220,7 +209,7 @@ class VideoDataSet(data.Dataset):
         gt_bbox_padding[:num_gt, :] = gt_bbox[:num_gt]
         # labels = BoxList(torch.Tensor(gt_bbox))
 
-        return match_score_action, gt_iou_map, match_score_start, match_score_end, gt_bbox_padding, num_gt
+        return video_data, match_score_action, gt_iou_map, match_score_start, match_score_end, gt_bbox_padding, num_gt
 
 
 
