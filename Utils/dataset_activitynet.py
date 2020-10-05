@@ -8,6 +8,7 @@ import torch.utils.data as data
 import os
 import torch
 import h5py
+import torch.nn.functional as F
 
 
 
@@ -125,12 +126,21 @@ class VideoDataSet(data.Dataset):
         video_name = list(self.video_list)[index]
         anchor_xmin = [self.temporal_gap * i for i in range(self.temporal_scale)]
         anchor_xmax = [self.temporal_gap * i for i in range(1, self.temporal_scale + 1)]
-        # print('loading data -->  '+str(video_name))
-        video_features = h5py.File(self.feature_path, 'r')
-        video_data = video_features[video_name][:]
-        video_data = torch.Tensor(video_data)
-        video_data = torch.transpose(video_data, 0, 1)
-        video_data.float()
+
+        rgb_features = h5py.File(os.path.join(self.feature_path, 'rgb.h5'), 'r')
+        rgb_data = rgb_features[video_name][:]
+        rgb_data = torch.Tensor(rgb_data)
+        rgb_data = torch.transpose(rgb_data, 0, 1)
+        rgb_data = F.interpolate(rgb_data[None,:,:], size=self.temporal_scale, mode='linear', align_corners=True).squeeze(0)
+
+        # flow_features = h5py.File(os.path.join(self.feature_path, 'flow.h5'), 'r')
+        # flow_data = flow_features[video_name][:]
+        # flow_data = torch.Tensor(flow_data)
+        # flow_data = torch.transpose(flow_data, 0, 1)
+        # flow_data = F.interpolate(flow_data[None,:,:], size=self.temporal_scale, mode='linear', align_corners=True).squeeze(0)
+        #
+        # video_data = torch.cat((rgb_data, flow_data), dim=0)
+        video_data = rgb_data
 
         return video_data, anchor_xmin, anchor_xmax
 

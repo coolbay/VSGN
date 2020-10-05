@@ -173,11 +173,11 @@ def parse_opt():
     parser.add_argument(
         '--temporal_scale',
         type=int,
-        default=1000)
+        default=1280)
     parser.add_argument(
         '--prop_temporal_scale',
         type=int,
-        default=250)
+        default=320)
     parser.add_argument(
         '--boundary_ratio',
         type=float,
@@ -185,7 +185,7 @@ def parse_opt():
     parser.add_argument(
         '--feat_dim',
         type=int,
-        default=2048)
+        default=1024)
     parser.add_argument(
         '--bb_hidden_dim',
         type=int,

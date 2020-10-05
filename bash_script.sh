@@ -18,7 +18,7 @@ then
     FEAT_NAME='Thumos_TSN_org/'
 elif [ ${DATASET} == 'activitynet' ]
 then
-    FEAT_NAME='TSN_features_rescaled1000/Anet_TSN_rf_rescaled1000_2.h5'
+    FEAT_NAME='Anet_TSN_org'
 elif [ ${DATASET} == 'hacs' ]
 then
     FEAT_NAME='HACS/'
