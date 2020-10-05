@@ -20,10 +20,7 @@ class FPN(nn.Module):
 
         self.levels_dec = nn.ModuleList()
         for i in range(self.num_levels - 1):
-            if i == 0 or i == 3: # i == 0 or i == 1 or i == 4:
-                output_padding = 1
-            else:
-                output_padding = 0
+            output_padding = 1
             self.levels_dec.append(self._make_levels_dec(in_channels=self.c_hidden, out_channels=self.c_hidden, output_padding = output_padding))
 
         self.levels1 = nn.ModuleList()
