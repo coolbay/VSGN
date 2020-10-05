@@ -56,14 +56,14 @@ def Infer_SegTAD(opt):
 
     test_loader = torch.utils.data.DataLoader(VideoDataSet(opt, subset="validation", mode="inference"),
                                               batch_size=opt["batch_size"], shuffle=False,
-                                              num_workers=10, pin_memory=True, drop_last=False)
+                                              num_workers=20, pin_memory=True, drop_last=False)
 
     with torch.no_grad():
         # for index_list, input_data, gt_actionness, gt_act_map in test_loader:
-        for i, (index_list, input_data) in enumerate(test_loader):
+        for i, (index_list, input_data, num_frms) in enumerate(test_loader):
 
             infer_batch_selectprop(model, index_list, input_data, test_loader, proposal_path,
-                                   actionness_path, start_end_path, prop_map_path)
+                                   actionness_path, start_end_path, prop_map_path, num_frms)
 
 
 # Infer one batch of data, for the model with proposal selection
@@ -74,7 +74,8 @@ def infer_batch_selectprop(model,
                            proposal_path,
                            actionness_path,
                            start_end_path,
-                           prop_map_path,):
+                           prop_map_path,
+                           num_frms):
 
     gt_act_map = torch.zeros((input_data.shape[0],), device=input_data.device)
     loc_enc, score_enc, loc_dec, score_dec, loc_st2, pred_action, pred_start, pred_end = model(input_data.cuda(), gt_act_map)
@@ -87,7 +88,7 @@ def infer_batch_selectprop(model,
     pred_action_batch = pred_action.detach().cpu().numpy()
     pred_start_batch = pred_start.detach().cpu().numpy()
     pred_end_batch = pred_end.detach().cpu().numpy()
-
+    num_frms_batch = num_frms.detach().cpu().numpy()
 
 
     Parallel(n_jobs=len(index_list))(
@@ -103,7 +104,8 @@ def infer_batch_selectprop(model,
             proposal_path = proposal_path,
             actionness_path = actionness_path,
             start_end_path = start_end_path,
-            prop_map_path = prop_map_path
+            prop_map_path = prop_map_path,
+            num_frms_v = num_frms_batch
 
         ) for batch_idx, full_idx in enumerate(index_list))
 
@@ -124,7 +126,8 @@ def infer_batch_selectprop(model,
     #         proposal_path = proposal_path,
     #         actionness_path = actionness_path,
     #         start_end_path = start_end_path,
-    #         prop_map_path = prop_map_path
+    #         prop_map_path = prop_map_path,
+    #         num_frms_v = num_frms_batch[batch_idx]
     #     )
 
 
@@ -139,6 +142,7 @@ def infer_v_asis(*args, **kwargs):
     pred_start_v = kwargs['pred_start_v']
     pred_end_v = kwargs['pred_end_v']
     proposal_path = kwargs['proposal_path']
+    num_frms_v = kwargs['num_frms_v']
 
     if opt['dataset'] == 'activitynet' or opt['dataset'] == 'hacs':
         video_name = kwargs['video']
@@ -163,7 +167,7 @@ def infer_v_asis(*args, **kwargs):
         score = score * score_stage2
 
     if opt['dataset'] == 'activitynet' or opt['dataset'] == 'hacs':
-        new_props = np.concatenate((loc_pred_v/prop_tscale, score[:, None], score[:, None], score[:, None]), axis=1)
+        new_props = np.concatenate((loc_pred_v/num_frms_v, score[:, None], score[:, None], score[:, None]), axis=1)
 
     col_name = ["xmin", "xmax", "clr_score", "reg_socre", "score"]
     new_df = pd.DataFrame(new_props, columns=col_name)

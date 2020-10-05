@@ -97,12 +97,12 @@ class VideoDataSet(data.Dataset):
         "%s subset video numbers: %d" % (self.subset, len(self.video_list))
 
     def __getitem__(self, index):
-        video_data, match_score_action, gt_iou_map, match_score_start, match_score_end, gt_bbox, num_gt  = self._get_train_data_label(index)
+        video_data, match_score_action, gt_iou_map, match_score_start, match_score_end, gt_bbox, num_gt, num_frms = self._get_train_data_label(index)
 
         if self.mode == "train":
             return video_data, match_score_action, match_score_start, match_score_end, gt_iou_map, gt_bbox, num_gt
         else:
-            return index, video_data #, match_score_action, gt_iou_map
+            return index, video_data, num_frms #, match_score_action, gt_iou_map
 
     def _get_match_map(self):
         match_map = []
@@ -209,7 +209,7 @@ class VideoDataSet(data.Dataset):
         gt_bbox_padding[:num_gt, :] = gt_bbox[:num_gt]
         # labels = BoxList(torch.Tensor(gt_bbox))
 
-        return video_data, match_score_action, gt_iou_map, match_score_start, match_score_end, gt_bbox_padding, num_gt
+        return video_data, match_score_action, gt_iou_map, match_score_start, match_score_end, gt_bbox_padding, num_gt, num_frms
 
 
 
