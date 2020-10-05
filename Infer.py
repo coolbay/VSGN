@@ -105,7 +105,7 @@ def infer_batch_selectprop(model,
             actionness_path = actionness_path,
             start_end_path = start_end_path,
             prop_map_path = prop_map_path,
-            num_frms_v = num_frms_batch
+            num_frms_v = num_frms_batch[batch_idx]
 
         ) for batch_idx, full_idx in enumerate(index_list))
 
