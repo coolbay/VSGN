@@ -142,6 +142,9 @@ class ANETproposal(object):
         activity_index, cidx = {}, 0
         video_lst, t_start_lst, t_end_lst, label_lst = [], [], [], []
         for videoid, v in data['database'].items():
+            if videoid in 'v_Bg-0ibLZrgg' or videoid in 'v_0dkIbKXXFzI' or videoid in 'v_fmtW5lcdT_0' or videoid in 'v_x0PE_98UO3s':
+                continue
+
             if self.subset != v['subset']:
                 continue
             if videoid in self.blocked_videos:

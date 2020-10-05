@@ -33,6 +33,10 @@ def getDatasetDict(opt):
     video_dict = {}
     for i in range(len(anno_df)):
         video_name = anno_df.video.values[i]
+
+        if video_name == 'v_Bg-0ibLZrgg' or video_name == 'v_0dkIbKXXFzI' or video_name == 'v_fmtW5lcdT_0' or video_name == 'v_x0PE_98UO3s':
+            continue
+
         video_info = anno_database[video_name]
         video_new_info = {}
         video_new_info['duration_frame'] = video_info['duration_frame']

@@ -22,6 +22,10 @@ def getDatasetDict(opt):
     test_dict={}
     for i in range(len(df)):
         video_name=df.video.values[i]
+
+        if video_name == 'v_Bg-0ibLZrgg' or video_name == 'v_0dkIbKXXFzI' or video_name == 'v_fmtW5lcdT_0' or video_name == 'v_x0PE_98UO3s':
+            continue
+
         video_info=database[video_name]
         video_new_info={}
         video_new_info['duration_frame']=video_info['duration_frame']

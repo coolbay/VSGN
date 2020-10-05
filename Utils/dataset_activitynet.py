@@ -65,8 +65,8 @@ class VideoDataSet(data.Dataset):
 
         for i in range(len(anno_df)):
             video_name = anno_df.video.values[i]
-            # if video_name == 'v_Bg-0ibLZrgg' or video_name == 'v_0dkIbKXXFzI' or video_name == 'v_fmtW5lcdT_0' or video_name == 'v_x0PE_98UO3s':
-            #     continue
+            if video_name == 'v_Bg-0ibLZrgg' or video_name == 'v_0dkIbKXXFzI' or video_name == 'v_fmtW5lcdT_0' or video_name == 'v_x0PE_98UO3s':
+                continue
 
             # if video_name == 'v_6kgJx6ahgq0' or video_name == 'v_RuBLAghI1vE':  # the annotation is not correct
             #     continue
