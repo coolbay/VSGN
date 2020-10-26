@@ -88,7 +88,7 @@ def Train_SegTAD(opt):
     # device_id = 0,1
     # torch.cuda.set_device(torch.device("cuda:" + str(device_id) if torch.cuda.is_available() else "cpu"))
     # torch.set_default_tensor_type('torch.cuda.FloatTensor')
-    kwargs = {'num_workers': 20, 'pin_memory': True, 'drop_last': True}
+    kwargs = {'num_workers': 16, 'pin_memory': True, 'drop_last': True}
 
     train_loader = torch.utils.data.DataLoader(VideoDataSet(opt, subset="train"),
                                                batch_size=opt["batch_size"], shuffle=True,
@@ -154,13 +154,13 @@ def train_SegTAD_epoch(data_loader, model, optimizer, epoch, writer, opt, bm_mas
 
     # all_gt_area = []  # by Catherine
     all_pos_area = []  # by Catherine
-    for n_iter, (input_data, gt_action, gt_start, gt_end, gt_bd_map, gt_bbox, num_gt) in enumerate(data_loader):
+    for n_iter, (input_data, gt_action, gt_start, gt_end, gt_bbox, num_gt) in enumerate(data_loader):
 
         # get_targets_area(gt_bbox, num_gt, all_gt_area) # by Catherine
         # if n_iter % 100 == 0:
         #     plot_dist_targets(all_gt_area) # by Catherine
 
-        losses, pred_action, pred_start, pred_end = model(input_data, gt_bd_map, gt_bbox, num_gt)
+        losses, pred_action, pred_start, pred_end = model(input_data, gt_bbox, num_gt)
 
         # get_pos_area(pos_idx_st_end.detach().cpu(), all_pos_area) # by Catherine
         # if n_iter % 100 == 0:
@@ -253,8 +253,8 @@ def test_SegTAD_epoch(data_loader, model, epoch, writer, opt, bm_mask):
     epoch_loss_stage2_reg = 0
     r1, r2, r3 = opt['loss_ratios']
 
-    for n_iter, (input_data, gt_action, gt_start, gt_end, gt_bd_map, gt_bbox, num_gt) in enumerate(data_loader):
-        losses, pred_action, pred_start, pred_end = model(input_data, gt_bd_map, gt_bbox, num_gt)
+    for n_iter, (input_data, gt_action, gt_start, gt_end, gt_bbox, num_gt) in enumerate(data_loader):
+        losses, pred_action, pred_start, pred_end = model(input_data, gt_bbox, num_gt)
 
         # Loss2a: actionness
         if opt['binary_actionness'] == 'true':

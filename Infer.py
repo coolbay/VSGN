@@ -135,7 +135,7 @@ def infer_batch_selectprop(model,
 def infer_v_asis(*args, **kwargs):
 
 
-    prop_tscale = args[0]["temporal_scale"]
+    tscale = args[0]["temporal_scale"]
     loc_pred_v = kwargs['loc_dec_v']
     score_enc_v = kwargs['score_enc_v']
     score_dec_v = kwargs['score_dec_v']
@@ -151,8 +151,8 @@ def infer_v_asis(*args, **kwargs):
         win_start, win_end = kwargs['video']['frames'][0][1:3]
         offset = kwargs['video']['win_idx']
 
-    loc_pred_v[:,0] = loc_pred_v[:,0].clip(min=0, max=prop_tscale-1)
-    loc_pred_v[:,1] = loc_pred_v[:,1].clip(min=0, max=prop_tscale-1)
+    loc_pred_v[:,0] = loc_pred_v[:,0].clip(min=0, max=tscale-1)
+    loc_pred_v[:,1] = loc_pred_v[:,1].clip(min=0, max=tscale-1)
 
     start_score = (pred_start_v[np.ceil(loc_pred_v[:,0]).astype('int32')] + pred_start_v[np.floor(loc_pred_v[:,0]).astype('int32')]) / 2
     end_score = (pred_end_v[np.ceil(loc_pred_v[:,1]).astype('int32')] + pred_end_v[np.floor(loc_pred_v[:,1]).astype('int32')]) / 2
@@ -163,8 +163,16 @@ def infer_v_asis(*args, **kwargs):
 
     if 'stage0' in opt['infer_score']:
         score = score * score_stage0
-    if 'stage2' in  opt['infer_score']:
+    if 'stage2' in opt['infer_score']:
         score = score * score_stage2
+
+    if num_frms_v <= tscale * 0.4:
+        indices = (loc_pred_v[:,0] >=num_frms_v)
+        loc_pred_v[indices] = loc_pred_v[indices] - num_frms_v
+        loc_pred_v[indices] = loc_pred_v[indices] / (tscale - num_frms_v) * num_frms_v
+
+    loc_pred_v[:,0] = loc_pred_v[:,0].clip(min=0, max=num_frms_v-1)
+    loc_pred_v[:,1] = loc_pred_v[:,1].clip(min=0, max=num_frms_v-1)
 
     if opt['dataset'] == 'activitynet' or opt['dataset'] == 'hacs':
         new_props = np.concatenate((loc_pred_v/num_frms_v, score[:, None], score[:, None], score[:, None]), axis=1)

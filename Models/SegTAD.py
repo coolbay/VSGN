@@ -127,7 +127,7 @@ class SegTAD(nn.Module):
 
         return self.FBV2_final(torch.cat((feat1, feat2), dim=1))
 
-    def forward(self, input, gt_iou_map, gt_bbox = None, num_gt = None):
+    def forward(self, input, gt_bbox = None, num_gt = None):
 
         feats_enc, feats_dec = self.fpn(input)
 
