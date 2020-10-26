@@ -16,7 +16,7 @@ class LossComputation(object):
         self.tscale = opt["temporal_scale"]
         self.iou_thr_method = opt['iou_thr_method']
         self.gamma = 2.0
-        self.alpha = 0.25
+        self.alpha = opt['focal_alpha']
         self.num_classes = 1 if opt['dataset'] == 'activitynet' else opt['decoder_num_classes']
 
         if self.iou_thr_method == 'fixed':

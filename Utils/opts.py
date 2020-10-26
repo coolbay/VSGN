@@ -490,6 +490,11 @@ def parse_opt():
         default=False,
         action='store_true')
 
+    parser.add_argument(
+        '--focal_alpha',
+        type=float,
+        default=0.25)
+
     args = parser.parse_args()
 
     return args
