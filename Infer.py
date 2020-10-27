@@ -168,8 +168,8 @@ def infer_v_asis(*args, **kwargs):
 
     if num_frms_v <= tscale * 0.4:
         indices = (loc_pred_v[:,0] >=num_frms_v)
-        loc_pred_v[indices] = loc_pred_v[indices] - num_frms_v
-        loc_pred_v[indices] = loc_pred_v[indices] / (tscale - num_frms_v) * num_frms_v
+        loc_pred_v[indices] = loc_pred_v[indices] - num_frms_v - opt['stitch_gap']
+        loc_pred_v[indices] = loc_pred_v[indices] / (tscale - num_frms_v - opt['stitch_gap']) * num_frms_v
 
     loc_pred_v[:,0] = loc_pred_v[:,0].clip(min=0, max=num_frms_v-1)
     loc_pred_v[:,1] = loc_pred_v[:,1].clip(min=0, max=num_frms_v-1)

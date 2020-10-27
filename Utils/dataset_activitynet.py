@@ -32,6 +32,7 @@ class VideoDataSet(data.Dataset):
         self.anet_classes = opt["anet_classes"]
         self.binary_actionness = opt['binary_actionness']
         self.feat_dim = opt['feat_dim']
+        self.gap = opt['stitch_gap']
         self._getDatasetDict()
         self._get_match_map()
 
@@ -156,19 +157,21 @@ class VideoDataSet(data.Dataset):
         video_labels = video_info['annotations']
         video_second = video_info['duration_second']
 
+        video_data = torch.zeros(self.feat_dim, self.temporal_scale)
+
         # Left part: original length
         num_frms1 = num_frms
         rgb_data1 = rgb_data
         flow_data1 = F.interpolate(flow_data[None,:,:], size=num_frms1, mode='linear', align_corners=True).squeeze(0)
         fps1 = num_frms1 / video_second
+        video_data[:, :num_frms1] = torch.cat((rgb_data1, flow_data1), dim=0)
 
         # Right part: rescaled length
-        num_frms2 = self.temporal_scale - num_frms1
+        num_frms2 = self.temporal_scale - num_frms1 - self.gap
         rgb_data2 = F.interpolate(rgb_data[None,:,:], size=num_frms2, mode='linear', align_corners=True).squeeze(0)
         flow_data2 = F.interpolate(flow_data[None,:,:], size=num_frms2, mode='linear', align_corners=True).squeeze(0)
         fps2 = num_frms2 / video_second
-
-        video_data = torch.cat((torch.cat((rgb_data1, flow_data1), dim=0), torch.cat((rgb_data2, flow_data2), dim=0)), dim=1)
+        video_data[:, -num_frms2:] = torch.cat((rgb_data2, flow_data2), dim=0)
 
         # Get gt_iou_map
         gt_bbox = []
@@ -185,8 +188,8 @@ class VideoDataSet(data.Dataset):
 
         for j in range(len(video_labels)):
             tmp_info = video_labels[j]
-            tmp_start_f = max(min(num_frms2-1, round(tmp_info['segment'][0] * fps2)), 0) + num_frms1
-            tmp_end_f = max(min(num_frms2-1, round(tmp_info['segment'][1] * fps2)), 0) + num_frms1
+            tmp_start_f = max(min(num_frms2-1, round(tmp_info['segment'][0] * fps2)), 0) + num_frms1 + self.gap
+            tmp_end_f = max(min(num_frms2-1, round(tmp_info['segment'][1] * fps2)), 0) + num_frms1 + self.gap
 
             tmp_start = tmp_start_f / self.temporal_scale
             tmp_end = tmp_end_f / self.temporal_scale
