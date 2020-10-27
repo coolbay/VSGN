@@ -39,7 +39,8 @@ class BatchCollator(object):
         return video_data, match_score_action, match_score_start, match_score_end, gt_iou_map, gt_bbox
 
 def Train_SegTAD(opt):
-    writer = SummaryWriter()
+    path_appendix = '_'.join(string for string in opt['checkpoint_path'].split('_')[1:])
+    writer = SummaryWriter(logdir='runs/' + path_appendix)
     model = SegTAD(opt)
     device = "cuda"
     model = torch.nn.DataParallel(model)

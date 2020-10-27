@@ -10,7 +10,7 @@
 #SBATCH --mem 100GB
 
 set -ex
-DATE_TIME=`date +'%Y-%m-%d_%H-%M'`
+DATE_TIME=`date +'%Y-%m-%d_%H-%M-%S'`
 DATASET='activitynet'
 
 if [ ${DATASET} == 'thumos' ]
