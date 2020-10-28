@@ -23,14 +23,17 @@ elif [ ${DATASET} == 'hacs' ]
 then
     FEAT_NAME='HACS/'
 fi
-
+echo $SLURM_ARRAY_TASK_ID
 IOU_BOUND='0.45 0.95'
 TRAIN_LR=0.001
-TRAIN_FLAG="${DATASET}_${DATE_TIME}_lr${TRAIN_LR}"
+SHORT=$(sed -n "$((SLURM_ARRAY_TASK_ID))"p hp.txt)
+
+TRAIN_FLAG="${DATASET}_${DATE_TIME}_lr${TRAIN_LR}_short${SHORT}"
 CKP_PATH=./checkpoint_${TRAIN_FLAG}
 OUTPUT_PATH=./output_${TRAIN_FLAG}
 LOG_TRAIN="${CKP_PATH}/log_train.txt"
 LOG_TEST="${OUTPUT_PATH}/log_test.txt"
+OUT_PMAP='true'
 
 # Choose machine
 if  [ $1 == 'kw60749' ]
@@ -38,7 +41,7 @@ then
     DATA_PATH="/home/xum/dataset/${FEAT_NAME}"
     module load cuda
     source activate pytorch110
-elif [ $1 == 'kw60748' ] || [ $1 == 'kw60747' ] || [ $1 == 'kw60746' ] || [ $1 == 'kw60623' ] ||  [ $1 == 'kw60661' ]
+elif [ $1 == 'kw60748' ] || [ $1 == 'kw60747' ] || [ $1 == 'kw60746' ] || [ $1 == 'kw60623' ] ||  [ $1 == 'kw60661' ] || [ $1 == 'kw60624' ]
 then
     DATA_PATH="/home/zhaoc/datasets/${FEAT_NAME}"
     source activate pytorch110
@@ -47,8 +50,8 @@ then
     DATA_PATH="/ibex/scratch/zhaoc/datasets/${FEAT_NAME}"
     OUT_PMAP='false'
     module purge
-    module load anaconda3
-    module load cuda
+    module load anaconda3/2019.10
+    module load cuda/10.0.130
     source activate pytorch110
 fi
 
@@ -69,7 +72,8 @@ then
         --is_train true   \
         --dataset ${DATASET}   \
         --batch_size  256  \
-	    --train_lr ${TRAIN_LR}  | tee -a "$LOG_TRAIN"
+	    --train_lr ${TRAIN_LR}  \
+	    --short_ratio ${SHORT} | tee -a "$LOG_TRAIN"
 fi
 
 if [[ $2 =~ .*'infer'.* ]]
@@ -88,7 +92,8 @@ then
         --checkpoint_path ${CKP_PATH}   \
         --is_train false  \
         --dataset ${DATASET}   \
-        --batch_size  256  | tee -a "$LOG_TEST"
+        --batch_size  256  \
+	    --short_ratio ${SHORT}  | tee -a "$LOG_TEST"
 fi
 
 if [[ $2 =~ .*'eval'.* ]]
@@ -104,7 +109,8 @@ then
     python Eval.py  --output_path ${OUTPUT_PATH}    \
         --feature_path ${DATA_PATH} \
         --checkpoint_path ${CKP_PATH}   \
-        --dataset ${DATASET}  | tee -a "$LOG_TEST"
+        --dataset ${DATASET}  \
+        --out_prop_map ${OUT_PMAP}  | tee -a "$LOG_TEST"
 fi
 
 conda deactivate
