@@ -500,6 +500,11 @@ def parse_opt():
         type=int,
         default=30)
 
+    parser.add_argument(
+        '--short_ratio',
+        type=float,
+        default=0.4)
+
     args = parser.parse_args()
 
     return args

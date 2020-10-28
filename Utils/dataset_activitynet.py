@@ -33,6 +33,7 @@ class VideoDataSet(data.Dataset):
         self.binary_actionness = opt['binary_actionness']
         self.feat_dim = opt['feat_dim']
         self.gap = opt['stitch_gap']
+        self.short_ratio = opt['short_ratio']
         self._getDatasetDict()
         self._get_match_map()
 
@@ -144,7 +145,7 @@ class VideoDataSet(data.Dataset):
         flow_data = torch.transpose(flow_data, 0, 1)
         num_frms = rgb_data.shape[-1]
 
-        if num_frms > self.temporal_scale * 0.4:
+        if num_frms > self.temporal_scale * self.short_ratio:
             return self._get_train_data_label_org(rgb_data, flow_data, num_frms, video_name)
         else:
             return self._get_train_data_label_stitch(rgb_data, flow_data, num_frms, video_name)

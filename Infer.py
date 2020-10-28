@@ -166,12 +166,12 @@ def infer_v_asis(*args, **kwargs):
     if 'stage2' in opt['infer_score']:
         score = score * score_stage2
 
-    if num_frms_v <= tscale * 0.4:
-        if False:
+    if num_frms_v <= tscale * opt['short_ratio']:
+        if True:
             indices = (loc_pred_v[:,0] >= num_frms_v)
             loc_pred_v[indices] = loc_pred_v[indices] - num_frms_v - opt['stitch_gap']
             loc_pred_v[indices] = loc_pred_v[indices] / (tscale - num_frms_v - opt['stitch_gap']) * num_frms_v
-        elif True:
+        elif False:
             indices = (loc_pred_v[:,0] >= num_frms_v)
             loc_pred_v[indices] = loc_pred_v[indices] - num_frms_v - opt['stitch_gap']
             loc_pred_v = loc_pred_v[indices] / (tscale - num_frms_v - opt['stitch_gap']) * num_frms_v
