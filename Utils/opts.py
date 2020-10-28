@@ -505,6 +505,13 @@ def parse_opt():
         type=float,
         default=0.4)
 
+    parser.add_argument(
+        '--gcn_insert',
+        default='seq',
+        type=str,
+        choices=['seq', 'par'])
+
+
     args = parser.parse_args()
 
     return args

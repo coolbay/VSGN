@@ -1,7 +1,7 @@
 #!/bin/bash
 
 #SBATCH --job-name stl
-#SBATCH --array=1-9
+#SBATCH --array=1-6
 #SBATCH --time=0-04:00:00
 #SBATCH -o gpu.%A.out
 #SBATCH -e gpu.%A.err
@@ -72,7 +72,7 @@ then
         --checkpoint_path ${CKP_PATH}  \
         --is_train true   \
         --dataset ${DATASET}   \
-        --batch_size  256  \
+        --batch_size  64  \
 	    --train_lr ${TRAIN_LR}  \
 	    --short_ratio ${SHORT} | tee -a "$LOG_TRAIN"
 fi
@@ -93,7 +93,7 @@ then
         --checkpoint_path ${CKP_PATH}   \
         --is_train false  \
         --dataset ${DATASET}   \
-        --batch_size  256  \
+        --batch_size  64  \
 	    --short_ratio ${SHORT}  | tee -a "$LOG_TEST"
 fi
 

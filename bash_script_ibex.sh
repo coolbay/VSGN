@@ -26,10 +26,9 @@ then
 fi
 echo $SLURM_ARRAY_TASK_ID
 IOU_BOUND='0.45 0.95'
-TRAIN_LR=0.001
-SHORT=$(sed -n "$((SLURM_ARRAY_TASK_ID))"p hp.txt)
+TRAIN_LR=$(sed -n "$((SLURM_ARRAY_TASK_ID))"p hp.txt)
 
-TRAIN_FLAG="${DATASET}_${DATE_TIME}_lr${TRAIN_LR}_short${SHORT}"
+TRAIN_FLAG="${DATASET}_${DATE_TIME}_lr${TRAIN_LR}_neigh4"
 CKP_PATH=./checkpoint_${TRAIN_FLAG}
 OUTPUT_PATH=./output_${TRAIN_FLAG}
 LOG_TRAIN="${CKP_PATH}/log_train.txt"
@@ -73,7 +72,7 @@ then
         --dataset ${DATASET}   \
         --batch_size  256  \
 	    --train_lr ${TRAIN_LR}  \
-	    --short_ratio ${SHORT} | tee -a "$LOG_TRAIN"
+	    --n_neigh_seq 4 | tee -a "$LOG_TRAIN"
 fi
 
 if [[ $2 =~ .*'infer'.* ]]
@@ -93,7 +92,7 @@ then
         --is_train false  \
         --dataset ${DATASET}   \
         --batch_size  256  \
-	    --short_ratio ${SHORT}  | tee -a "$LOG_TEST"
+	    --n_neigh_seq 4  | tee -a "$LOG_TEST"
 fi
 
 if [[ $2 =~ .*'eval'.* ]]

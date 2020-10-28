@@ -1,6 +1,7 @@
 import torch
 import torch.nn as nn
 from Utils.Sync_batchnorm.batchnorm import SynchronizedBatchNorm1d
+from .GCNs import Graph_Layer
 
 
 
@@ -13,10 +14,16 @@ class FPN(nn.Module):
         self.tem_best_loss = 10000000
         self.num_levels = opt['num_levels'] # 5
 
+        # self.conv0 = self._make_levels_enc(opt, in_channels=self.feat_dim, out_channels=self.c_hidden)
+
+        self.conv0 = nn.Sequential(
+            nn.Conv1d(in_channels=self.feat_dim, out_channels=self.c_hidden,kernel_size=3,stride=2,padding=1,groups=1),
+            nn.ReLU(inplace=True),
+        )
+
         self.levels_enc = nn.ModuleList()
-        self.levels_enc.append(self._make_levels_enc(in_channels=self.feat_dim, out_channels=self.c_hidden))
         for i in range(self.num_levels):
-            self.levels_enc.append(self._make_levels_enc(in_channels=self.c_hidden, out_channels=self.c_hidden))
+            self.levels_enc.append(self._make_levels_enc(opt, in_channels=self.c_hidden, out_channels=self.c_hidden))
 
         self.levels_dec = nn.ModuleList()
         for i in range(self.num_levels - 1):
@@ -34,12 +41,12 @@ class FPN(nn.Module):
 
         self.freeze_bn = freeze_bn
 
-    def _make_levels_enc(self, in_channels, out_channels):
+    def _make_levels_enc(self, opt, in_channels, out_channels):
 
         return nn.Sequential(
-            nn.Conv1d(in_channels=in_channels, out_channels=out_channels,kernel_size=3,stride=2,padding=1,groups=1),
+            Graph_Layer(opt, in_channels=in_channels, out_channels=out_channels),
             nn.ReLU(inplace=True),
-            # nn.MaxPool1d(kernel_size=2, stride=2)
+            nn.MaxPool1d(kernel_size=2, stride=2)
         )
 
     def _make_levels_dec(self, in_channels, out_channels, output_padding = 1):
@@ -59,8 +66,8 @@ class FPN(nn.Module):
     def _encoder(self, input):
 
         feats = []
-        x = self.levels_enc[0](input)
-        for i in range(1, self.num_levels + 1):
+        x = self.conv0(input)
+        for i in range(0, self.num_levels):
             x = self.levels_enc[i](x)
             feats.append(x)
 
