@@ -1,6 +1,7 @@
 #!/bin/bash
 
 #SBATCH --job-name stl
+#SBATCH --array=1-9
 #SBATCH --time=0-04:00:00
 #SBATCH -o gpu.%A.out
 #SBATCH -e gpu.%A.err
