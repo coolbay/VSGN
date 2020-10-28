@@ -91,7 +91,7 @@ for i in range(len(anno_df)):
         if tmp_end-tmp_start > max_gt:
             max_gt = tmp_end-tmp_start
 
-    if max_gt  < 1280 * 0.8:
+    if max_gt / num_frms < 0.4:
         continue
     plt.plot(range(v_length), gt_curve, c='r', linewidth=3)
 

@@ -167,9 +167,19 @@ def infer_v_asis(*args, **kwargs):
         score = score * score_stage2
 
     if num_frms_v <= tscale * 0.4:
-        indices = (loc_pred_v[:,0] >=num_frms_v)
-        loc_pred_v[indices] = loc_pred_v[indices] - num_frms_v - opt['stitch_gap']
-        loc_pred_v[indices] = loc_pred_v[indices] / (tscale - num_frms_v - opt['stitch_gap']) * num_frms_v
+        if False:
+            indices = (loc_pred_v[:,0] >= num_frms_v)
+            loc_pred_v[indices] = loc_pred_v[indices] - num_frms_v - opt['stitch_gap']
+            loc_pred_v[indices] = loc_pred_v[indices] / (tscale - num_frms_v - opt['stitch_gap']) * num_frms_v
+        elif True:
+            indices = (loc_pred_v[:,0] >= num_frms_v)
+            loc_pred_v[indices] = loc_pred_v[indices] - num_frms_v - opt['stitch_gap']
+            loc_pred_v = loc_pred_v[indices] / (tscale - num_frms_v - opt['stitch_gap']) * num_frms_v
+            score = score[indices]
+        elif False:
+            indices = (loc_pred_v[:,0] < num_frms_v)
+            loc_pred_v = loc_pred_v[indices]
+            score = score[indices]
 
     loc_pred_v[:,0] = loc_pred_v[:,0].clip(min=0, max=num_frms_v-1)
     loc_pred_v[:,1] = loc_pred_v[:,1].clip(min=0, max=num_frms_v-1)
