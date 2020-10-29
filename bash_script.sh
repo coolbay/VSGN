@@ -34,6 +34,7 @@ CKP_PATH=./checkpoint_${TRAIN_FLAG}
 OUTPUT_PATH=./output_${TRAIN_FLAG}
 LOG_TRAIN="${CKP_PATH}/log_train.txt"
 LOG_TEST="${OUTPUT_PATH}/log_test.txt"
+OUT_PMAP='true'
 
 # Choose machine
 if  [ $1 == 'kw60749' ]
