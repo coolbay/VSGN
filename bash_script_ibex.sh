@@ -110,7 +110,7 @@ then
         --feature_path ${DATA_PATH} \
         --checkpoint_path ${CKP_PATH}   \
         --dataset ${DATASET}  \
-        --out_prop_map 'false'  | tee -a "$LOG_TEST"
+        --out_prop_map ${OUT_PMAP}  | tee -a "$LOG_TEST"
 fi
 
 conda deactivate
