@@ -142,8 +142,7 @@ class Graph_Layer(nn.Module):
             neigh_idx = get_neigh_idx_semantic(c_out, self.n_neigh)
             g_out = self.nconv1(c_out.permute(0, 2, 1).reshape(-1, C), neigh_idx)
 
-            g_out = g_out.view(bs, num_frm, -1).permute(0, 2, 1)
-
+        g_out = g_out.view(bs, num_frm, -1).permute(0, 2, 1)
         out = c_out + g_out
 
         return out
