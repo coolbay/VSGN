@@ -36,9 +36,9 @@ class VideoDataSet(data.Dataset):
         self.short_ratio = opt['short_ratio']
         self._getDatasetDict()
         self._get_match_map()
-        if self.subset == 'train':
+        if 'train' in self.subset:
             self.video_windows = load_json('./Utils/video_win_train.json')
-        elif self.subset == 'val':
+        elif 'val' in  self.subset:
             self.video_windows = load_json('./Utils/video_win_val.json')
         self.anchor_xmin = [self.temporal_gap * i for i in range(self.temporal_scale)]
         self.anchor_xmax = [self.temporal_gap * i for i in range(1, self.temporal_scale + 1)]
