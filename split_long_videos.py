@@ -31,6 +31,8 @@ clip_win_size = opt['clip_win_size'] * opt['temporal_scale'] / fps
 v_clip = []
 
 for v_name, v_info in anno_database.items():
+    if 'v_V90aT-d_FKo' in v_name:
+        a = 1
 
     if 'train' not in anno_df[anno_df.video.values == v_name].subset.values[0]:
         continue
@@ -43,6 +45,9 @@ for v_name, v_info in anno_database.items():
         dict_w = {}
         pre_end = 0
         for annot in v_info['annotations']:
+            if annot['segment'][0] < pre_end:
+                continue
+
             if bool(dict_w) and cnt>0 and annot['segment'][1] <= dict_w['w_end']:
                 pre_end = annot['segment'][1]
                 continue

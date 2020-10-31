@@ -161,7 +161,10 @@ class VideoDataSet(data.Dataset):
         fps_org = num_frms_org / video_second_org
 
         video_labels = []
+        video_labels_org
         for label in video_labels_org:
+            label['segment'][0] = max(0, label['segment'][0])
+            label['segment'][1] = min(label['segment'][1], video_second_org)
             if label['segment'][0] >= w_start and label['segment'][1] <= w_end:
                 label['segment'][0] = label['segment'][0] - w_start
                 label['segment'][1] = label['segment'][1] - w_start
@@ -229,6 +232,8 @@ class VideoDataSet(data.Dataset):
         ####################################################################################################
         # generate R_s and R_e
         gt_bbox = np.array(gt_bbox)
+        if gt_bbox.shape[0] == 0:
+            print(gt_bbox.shape)
         gt_xmins = gt_bbox[:, 0]
         gt_xmaxs = gt_bbox[:, 1]
         gt_len_small = 3 * self.temporal_gap  # np.maximum(self.temporal_gap, self.boundary_ratio * gt_lens)
