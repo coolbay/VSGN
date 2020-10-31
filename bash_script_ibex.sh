@@ -1,7 +1,7 @@
 #!/bin/bash
 
 #SBATCH --job-name sti_same
-#SBATCH --array=1-7
+#SBATCH --array=1-6
 #SBATCH --time=0-04:00:00
 #SBATCH -o gpu.%A.out
 #SBATCH -e gpu.%A.err
@@ -26,8 +26,8 @@ then
 fi
 echo $SLURM_ARRAY_TASK_ID
 IOU_BOUND='0.45 0.95'
-TRAIN_LR=0.0002
-SHORT=$(sed -n "$((SLURM_ARRAY_TASK_ID))"p hp.txt)
+TRAIN_LR=$(sed -n "$((SLURM_ARRAY_TASK_ID))"p hp.txt)
+SHORT=0.4
 
 TRAIN_FLAG="${DATASET}_${DATE_TIME}_lr${TRAIN_LR}_neigh${SHORT}"
 CKP_PATH=./checkpoint_${TRAIN_FLAG}
