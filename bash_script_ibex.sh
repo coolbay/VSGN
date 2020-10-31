@@ -1,7 +1,7 @@
 #!/bin/bash
 
-#SBATCH --job-name sti_same
-#SBATCH --array=1-6
+#SBATCH --job-name gcn_split
+#SBATCH --array=1-10
 #SBATCH --time=0-04:00:00
 #SBATCH -o gpu.%A.out
 #SBATCH -e gpu.%A.err
@@ -26,14 +26,15 @@ then
 fi
 echo $SLURM_ARRAY_TASK_ID
 IOU_BOUND='0.45 0.95'
-TRAIN_LR=$(sed -n "$((SLURM_ARRAY_TASK_ID))"p hp.txt)
-SHORT=0.4
+TRAIN_LR=0.0001
+N_NEIGH=$(sed -n "$((SLURM_ARRAY_TASK_ID))"p hp.txt)
 
-TRAIN_FLAG="${DATASET}_${DATE_TIME}_lr${TRAIN_LR}_neigh${SHORT}"
+TRAIN_FLAG="${DATASET}_${DATE_TIME}_lr${TRAIN_LR}_neigh${N_NEIGH}"
 CKP_PATH=./checkpoint_${TRAIN_FLAG}
 OUTPUT_PATH=./output_${TRAIN_FLAG}
 LOG_TRAIN="${CKP_PATH}/log_train.txt"
 LOG_TEST="${OUTPUT_PATH}/log_test.txt"
+OUT_PMAP='true'
 
 # Choose machine
 if  [ $1 == 'kw60749' ]
@@ -73,7 +74,7 @@ then
         --dataset ${DATASET}   \
         --batch_size  32  \
 	    --train_lr ${TRAIN_LR}  \
-	    --short_ratio ${SHORT} | tee -a "$LOG_TRAIN"
+	    --n_neigh_seq ${N_NEIGH} | tee -a "$LOG_TRAIN"
 fi
 
 if [[ $2 =~ .*'infer'.* ]]
@@ -93,7 +94,7 @@ then
         --is_train false  \
         --dataset ${DATASET}   \
         --batch_size  32  \
-	    --short_ratio ${SHORT}  | tee -a "$LOG_TEST"
+	    --n_neigh_seq ${N_NEIGH}  | tee -a "$LOG_TEST"
 fi
 
 if [[ $2 =~ .*'eval'.* ]]
