@@ -36,10 +36,7 @@ class VideoDataSet(data.Dataset):
         self.short_ratio = opt['short_ratio']
         self._getDatasetDict()
         self._get_match_map()
-        if self.subset == 'train':
-            self.video_windows = load_json('./Utils/video_win_train.json')
-        elif self.subset == 'val':
-            self.video_windows = load_json('./Utils/video_win_val.json')
+
         self.anchor_xmin = [self.temporal_gap * i for i in range(self.temporal_scale)]
         self.anchor_xmax = [self.temporal_gap * i for i in range(1, self.temporal_scale + 1)]
 
@@ -59,9 +56,18 @@ class VideoDataSet(data.Dataset):
     def _getDatasetDict(self):
         anno_df = pd.read_csv(self.video_info_path)
         anno_database = load_json(self.video_anno_path)
-
         self.video_dict = {}
         class_list = []
+
+        # for key, value in anno_database.items():
+        #     video_name = key
+        #     video_info = value
+        #     video_subset = value['subset']
+        #     if self.subset == "full" or self.subset in video_subset:
+        #         self.video_dict[video_name] = video_info
+        #
+        #     for item in video_info['annotations']:
+        #         class_list.append(item['label'])
 
         for i in range(len(anno_df)):
             video_name = anno_df.video.values[i]
@@ -93,7 +99,7 @@ class VideoDataSet(data.Dataset):
             with open(self.anet_classes, 'w') as f:
                 f.write(json.dumps(self.classes))
 
-        # "%s subset video numbers: %d" % (self.subset, len(self.video_list))
+        "%s subset video numbers: %d" % (self.subset, len(self.video_list))
 
     def __getitem__(self, index):
         video_data, match_score_action, match_score_start, match_score_end, gt_bbox, num_gt, num_frms = self._get_train_data_label(index)
@@ -123,13 +129,11 @@ class VideoDataSet(data.Dataset):
 
         # General data
 
-        video_name = self.video_windows[index]['v_name']
-        w_start = self.video_windows[index]['w_start']
-        w_end = self.video_windows[index]['w_end']
-        fps = 5
-        num_frms_win = (w_end - w_start) * fps
+        video_name = list(self.video_list)[index]
 
         # Get video feature
+
+
         rgb_features = h5py.File(os.path.join(self.feature_path, 'rgb.h5'), 'r')
         rgb_data = rgb_features[video_name][:]
         rgb_data = torch.Tensor(rgb_data)
@@ -139,58 +143,35 @@ class VideoDataSet(data.Dataset):
         flow_data = flow_features[video_name][:]
         flow_data = torch.Tensor(flow_data)
         flow_data = torch.transpose(flow_data, 0, 1)
-        
+        num_frms = rgb_data.shape[-1]
 
-        if num_frms_win > self.temporal_scale * self.short_ratio:
-            return self._get_train_data_label_org(rgb_data, flow_data, video_name)
+        if num_frms > self.temporal_scale * self.short_ratio:
+            return self._get_train_data_label_org(rgb_data, flow_data, num_frms, video_name)
         else:
-            return self._get_train_data_label_stitch(rgb_data, flow_data, video_name, w_start, w_end)
+            return self._get_train_data_label_stitch(rgb_data, flow_data, num_frms, video_name)
 
 
 
-    def _get_train_data_label_stitch(self, rgb_data, flow_data, video_name, w_start, w_end):
-
-        # debug
-        if w_start != 0:
-            a = 1
+    def _get_train_data_label_stitch(self, rgb_data, flow_data, num_frms, video_name):
         # Get annotations
         video_info = self.video_dict[video_name]
-        video_labels_org = video_info['annotations']
-        video_second_org = video_info['duration_second']
-        num_frms_org = rgb_data.shape[-1]
-        fps_org = num_frms_org / video_second_org
+        video_labels = video_info['annotations']
+        video_second = video_info['duration_second']
 
-        video_labels = []
-        for label in video_labels_org:
-            if label['segment'][0] >= w_start and label['segment'][1] <= w_end:
-                label['segment'][0] = label['segment'][0] - w_start
-                label['segment'][1] = label['segment'][1] - w_start
-                video_labels.append(label)
-        clip_second = w_end - w_start
-        clip_ratio = clip_second / video_second_org
         video_data = torch.zeros(self.feat_dim, self.temporal_scale)
 
         # Left part: original length
-        fps1 = fps_org
-        w_start_f1 = max(0, round(w_start * fps1))
-        w_end_f1 = round(w_end * fps1)
-        num_frms1 = w_end_f1 - w_start_f1
-
-        rgb_data1 = rgb_data[:, w_start_f1: w_end_f1]
-        flow_data1 = F.interpolate(flow_data[None,:,:], size=num_frms_org, mode='linear', align_corners=True).squeeze(0)[:, w_start_f1: w_end_f1]
-
+        num_frms1 = num_frms
+        rgb_data1 = rgb_data
+        flow_data1 = F.interpolate(flow_data[None,:,:], size=num_frms1, mode='linear', align_corners=True).squeeze(0)
+        fps1 = num_frms1 / video_second
         video_data[:, :num_frms1] = torch.cat((rgb_data1, flow_data1), dim=0)
 
         # Right part: rescaled length
         num_frms2 = self.temporal_scale - num_frms1 - self.gap
-        fps2 = num_frms2 / clip_second
-        w_start_f2 = round(w_start * fps2)
-        w_end_f2 = w_start_f2 + num_frms2
-
-        flow_target_frms = round(num_frms2 / clip_ratio)
-        rgb_data2 = F.interpolate(rgb_data1[None,:,:], size=num_frms2, mode='linear', align_corners=True).squeeze(0)
-        flow_data2 = F.interpolate(flow_data[None,:,:], size=flow_target_frms, mode='linear', align_corners=True).squeeze(0)[:, w_start_f2: w_end_f2]
-
+        rgb_data2 = F.interpolate(rgb_data[None,:,:], size=num_frms2, mode='linear', align_corners=True).squeeze(0)
+        flow_data2 = F.interpolate(flow_data[None,:,:], size=num_frms2, mode='linear', align_corners=True).squeeze(0)
+        fps2 = num_frms2 / video_second
         video_data[:, -num_frms2:] = torch.cat((rgb_data2, flow_data2), dim=0)
 
         # Get gt_iou_map
@@ -257,15 +238,13 @@ class VideoDataSet(data.Dataset):
         gt_bbox_padding[:num_gt, :] = gt_bbox[:num_gt]
         # labels = BoxList(torch.Tensor(gt_bbox))
 
-        return video_data, match_score_action, match_score_start, match_score_end, gt_bbox_padding, num_gt, num_frms1
+        return video_data, match_score_action, match_score_start, match_score_end, gt_bbox_padding, num_gt, num_frms
 
 
 
-    def _get_train_data_label_org(self, rgb_data, flow_data, video_name):
+    def _get_train_data_label_org(self, rgb_data, flow_data, num_frms, video_name):
         video_data = torch.zeros(self.feat_dim, self.temporal_scale)
-        
-        num_frms = rgb_data.shape[-1]
-        
+
         if num_frms > self.temporal_scale:
             rgb_data = F.interpolate(rgb_data[None,:,:], size=self.temporal_scale, mode='linear', align_corners=True).squeeze(0)
             num_frms = self.temporal_scale
@@ -362,7 +341,7 @@ class VideoDataSet(data.Dataset):
         return scores
 
     def __len__(self):
-        return len(self.video_windows)
+        return len(self.video_list)
 
 
 def iou_with_anchors(anchors_min, anchors_max, box_min, box_max):

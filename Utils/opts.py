@@ -506,6 +506,11 @@ def parse_opt():
         default=0.4)
 
     parser.add_argument(
+        '--clip_win_size',
+        type=float,
+        default=0.38)
+
+    parser.add_argument(
         '--gcn_insert',
         default='seq',
         type=str,

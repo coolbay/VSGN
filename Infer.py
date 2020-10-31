@@ -3,7 +3,7 @@ sys.dont_write_bytecode = True
 import torch
 import torch.nn.parallel
 from Utils.dataset_thumos import VideoDataSet as VideoDataSet_thumos
-from Utils.dataset_activitynet import VideoDataSet as VideoDataSet_anet
+from Utils.dataset_activitynet_infer import VideoDataSet as VideoDataSet_anet
 from Utils.dataset_hacs import VideoDataSet as VideoDataSet_hacs
 from Models.SegTAD import SegTAD
 import pandas as pd
