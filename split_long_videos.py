@@ -31,10 +31,10 @@ clip_win_size = opt['clip_win_size'] * opt['temporal_scale'] / fps
 v_clip = []
 
 for v_name, v_info in anno_database.items():
-    if 'v_V90aT-d_FKo' in v_name:
-        a = 1
+    if v_name == 'v_Bg-0ibLZrgg' or v_name == 'v_0dkIbKXXFzI' or v_name == 'v_fmtW5lcdT_0' or v_name == 'v_x0PE_98UO3s':
+        continue
 
-    if 'train' not in anno_df[anno_df.video.values == v_name].subset.values[0]:
+    if 'val' not in anno_df[anno_df.video.values == v_name].subset.values[0]:
         continue
 
     # For long videos
@@ -80,5 +80,5 @@ for v_name, v_info in anno_database.items():
     dict_v['w_end'] = v_info['duration_second']
     v_clip.append(dict_v)
 
-with open('video_win_train.json', 'w') as fout:
+with open('video_win_val.json', 'w') as fout:
     json.dump(v_clip, fout)

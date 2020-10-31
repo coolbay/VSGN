@@ -150,9 +150,6 @@ class VideoDataSet(data.Dataset):
 
     def _get_train_data_label_stitch(self, rgb_data, flow_data, video_name, w_start, w_end):
 
-        # debug
-        if w_start != 0:
-            a = 1
         # Get annotations
         video_info = self.video_dict[video_name]
         video_labels_org = video_info['annotations']
