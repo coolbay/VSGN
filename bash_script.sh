@@ -1,7 +1,7 @@
 #!/bin/bash
 
 #SBATCH --job-name stl
-#SBATCH --array=1-10
+#SBATCH --array=1-7
 #SBATCH --time=0-04:00:00
 #SBATCH -o gpu.%A.out
 #SBATCH -e gpu.%A.err
@@ -26,10 +26,10 @@ then
 fi
 echo $SLURM_ARRAY_TASK_ID
 IOU_BOUND='0.45 0.95'
-TRAIN_LR=0.0002
-N_NEIGH=$(sed -n "$((SLURM_ARRAY_TASK_ID))"p hp.txt)
+TRAIN_LR=0.0001
+GAP=$(sed -n "$((SLURM_ARRAY_TASK_ID))"p hp.txt)
 
-TRAIN_FLAG="${DATASET}_${DATE_TIME}_lr${TRAIN_LR}_neigh${N_NEIGH}"
+TRAIN_FLAG="${DATASET}_${DATE_TIME}_lr${TRAIN_LR}_GAP${GAP}"
 CKP_PATH=./checkpoint_${TRAIN_FLAG}
 OUTPUT_PATH=./output_${TRAIN_FLAG}
 LOG_TRAIN="${CKP_PATH}/log_train.txt"
@@ -74,7 +74,7 @@ then
         --dataset ${DATASET}   \
         --batch_size  32  \
 	    --train_lr ${TRAIN_LR}  \
-	    --n_neigh_seq ${N_NEIGH} | tee -a "$LOG_TRAIN"
+	    --stitch_gap ${GAP} | tee -a "$LOG_TRAIN"
 fi
 
 if [[ $2 =~ .*'infer'.* ]]
@@ -94,7 +94,7 @@ then
         --is_train false  \
         --dataset ${DATASET}   \
         --batch_size  32  \
-	    --n_neigh_seq ${N_NEIGH}  | tee -a "$LOG_TEST"
+	    --stitch_gap ${GAP}  | tee -a "$LOG_TEST"
 fi
 
 if [[ $2 =~ .*'eval'.* ]]
