@@ -74,7 +74,7 @@ then
         --dataset ${DATASET}   \
         --batch_size  32  \
 	    --train_lr ${TRAIN_LR}  \
-	    --n_neigh_seq ${N_NEIGH} | tee -a "$LOG_TRAIN"
+	    --num_neigh ${N_NEIGH} | tee -a "$LOG_TRAIN"
 fi
 
 if [[ $2 =~ .*'infer'.* ]]
@@ -94,7 +94,7 @@ then
         --is_train false  \
         --dataset ${DATASET}   \
         --batch_size  32  \
-	    --n_neigh_seq ${N_NEIGH}  | tee -a "$LOG_TEST"
+	    --num_neigh ${N_NEIGH}  | tee -a "$LOG_TEST"
 fi
 
 if [[ $2 =~ .*'eval'.* ]]
