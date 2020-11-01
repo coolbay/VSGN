@@ -99,7 +99,7 @@ class VideoDataSet(data.Dataset):
         video_data, match_score_action, match_score_start, match_score_end, gt_bbox, num_gt, num_frms = self._get_train_data_label(index)
 
         if self.mode == "train":
-            return video_data, match_score_action, match_score_start, match_score_end, gt_bbox, num_gt
+            return video_data, match_score_action, match_score_start, match_score_end, gt_bbox, num_gt, num_frms
         else:
             return index, video_data, num_frms #, match_score_action, gt_iou_map
 

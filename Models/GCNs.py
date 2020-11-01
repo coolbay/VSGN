@@ -50,22 +50,31 @@ def segment_dist_mat(target_segments, test_segments):
 
 
 # dynamic graph from knn
-def knn(x, y=None, k=10):
-    length = x.shape[-1]
+def knn(x, num_frms, opt, y=None, k=10):
+    bs, _, length = x.shape
+    ratio = opt['temporal_scale'] / length
     if y is None:
         y = x
 
     dif = torch.sum((x.unsqueeze(2) - y.unsqueeze(3))** 2, dim=1)
-    max_dif = torch.max(torch.max(dif, dim=1)[0], dim=1)[0][:, None].repeat(1, length)
-    dif[:, range(length), range(length)] = max_dif + 1
+    max_dif = torch.max(dif)
+    for i in range(bs):
+        if num_frms[i] <= (opt['short_ratio'] * opt['temporal_scale']):
+            thr = (num_frms[i] + opt['stitch_gap']) / ratio
+            dif[i, thr:, thr:] = max_dif + 1
+
+    # max_dif = torch.max(torch.max(dif, dim=1)[0], dim=1)[0][:, None].repeat(1, length)
+    # dif[:, range(length), range(length)] = max_dif + 1
+
+
     idx = dif.topk(k=k, dim=-1, largest=False)[1]
 
     return idx
 
-def get_neigh_idx_semantic(x, n_neigh):
+def get_neigh_idx_semantic(x, n_neigh, num_frms, opt):
 
     B, _, num_prop_v = x.shape
-    neigh_idx = knn(x, k=n_neigh).to(dtype=torch.float32)
+    neigh_idx = knn(x, num_frms, opt, k=n_neigh).to(dtype=torch.float32)
     shift = (torch.tensor(range(B), dtype=torch.float32, device=x.device) * num_prop_v)[:, None, None].repeat(1, num_prop_v, n_neigh)
     neigh_idx = (neigh_idx + shift).view(-1)
     return neigh_idx
@@ -123,10 +132,14 @@ class Graph_Layer(nn.Module):
         self.nfeat_mode = opt['nfeat_mode_seq'] #'feat_ctr'
         self.agg_type = opt['agg_type_seq']  #'max'
         self.gcn_insert = opt['gcn_insert']
+        self.opt = opt
         self.tconv1 = nn.Conv1d(in_channels=in_channels, out_channels=out_channels, kernel_size=3, stride=1, padding=1, groups=1)
         self.nconv1 = NeighConv(in_channels, out_channels, opt, self.n_neigh, self.edge_weight, self.nfeat_mode, self.agg_type)
 
-    def forward(self, x):
+        self.relu = nn.ReLU(inplace=True)
+        self.maxpool = nn.MaxPool1d(kernel_size=2, stride=2)
+
+    def forward(self, x, num_frms):
         bs, C, num_frm = x.shape
 
         # CNN
@@ -135,16 +148,19 @@ class Graph_Layer(nn.Module):
         # GCN
         if self.gcn_insert == 'par':
 
-            neigh_idx = get_neigh_idx_semantic(x, self.n_neigh)
+            neigh_idx = get_neigh_idx_semantic(x, self.n_neigh, num_frms, self.opt)
             g_out = self.nconv1(x.permute(0, 2, 1).reshape(-1, C), neigh_idx)
 
 
         elif self.gcn_insert == 'seq':
 
-            neigh_idx = get_neigh_idx_semantic(c_out, self.n_neigh)
+            neigh_idx = get_neigh_idx_semantic(c_out, self.n_neigh, num_frms, self.opt)
             g_out = self.nconv1(c_out.permute(0, 2, 1).reshape(-1, C), neigh_idx)
 
         g_out = g_out.view(bs, num_frm, -1).permute(0, 2, 1)
         out = c_out + g_out
+
+        out = self.relu(out)
+        out = self.maxpool(out)
 
         return out

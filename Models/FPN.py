@@ -42,12 +42,7 @@ class FPN(nn.Module):
         self.freeze_bn = freeze_bn
 
     def _make_levels_enc(self, opt, in_channels, out_channels):
-
-        return nn.Sequential(
-            Graph_Layer(opt, in_channels=in_channels, out_channels=out_channels),
-            nn.ReLU(inplace=True),
-            nn.MaxPool1d(kernel_size=2, stride=2)
-        )
+        return  Graph_Layer(opt, in_channels=in_channels, out_channels=out_channels)
 
     def _make_levels_dec(self, in_channels, out_channels, output_padding = 1):
 
@@ -63,12 +58,12 @@ class FPN(nn.Module):
             nn.ReLU(inplace=True),
         )
 
-    def _encoder(self, input):
+    def _encoder(self, input, num_frms):
 
         feats = []
         x = self.conv0(input)
         for i in range(0, self.num_levels):
-            x = self.levels_enc[i](x)
+            x = self.levels_enc[i](x, num_frms)
             feats.append(x)
 
         return feats
@@ -87,9 +82,9 @@ class FPN(nn.Module):
 
         return feats
 
-    def forward(self, input):
+    def forward(self, input, num_frms):
 
-        feats_enc = self._encoder(input)
+        feats_enc = self._encoder(input, num_frms)
         feats_dec = self._decoder(feats_enc)
 
         return feats_enc, feats_dec
