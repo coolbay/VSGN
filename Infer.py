@@ -77,8 +77,7 @@ def infer_batch_selectprop(model,
                            prop_map_path,
                            num_frms):
 
-    gt_act_map = torch.zeros((input_data.shape[0],), device=input_data.device)
-    loc_enc, score_enc, loc_dec, score_dec, loc_st2, pred_action, pred_start, pred_end = model(input_data.cuda(), gt_act_map)
+    loc_enc, score_enc, loc_dec, score_dec, loc_st2, pred_action, pred_start, pred_end = model(input_data.cuda(), num_frms)
 
 
     # Move variables to output to CPU
