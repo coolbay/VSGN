@@ -26,8 +26,6 @@ class SegTAD(nn.Module):
         self.stage2 = opt['stage2']
         self.edge_type = opt['edge_type']
         self.is_train = opt['is_train']
-        self.split_gcn = opt['split_gcn']
-        self.splits = opt['splits']
         self.num_samp_prop = sum(opt['num_samp_prop'])
         self.tem_best_loss = 10000000
         self.hidden_dim_2d = 128

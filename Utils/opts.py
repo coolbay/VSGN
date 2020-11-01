@@ -358,28 +358,6 @@ def parse_opt():
         choices=['grid', 'pgcn_iou', 'pgcn_dist', 'semantic_all', 'semantic_sep'])  # 'semantic_all' and 'semantic_sep' only differ in inference: construct a graph using all proposals or divide them into multiple graphs of the same size of the training graph
 
     parser.add_argument(
-        '--split_gcn',
-        default='false',
-        type=str,
-        choices=['false', 'true'])
-
-    parser.add_argument(
-        '--split_temp_edge',
-        default='none',
-        type=str,
-        choices=['in_graph', 'after_graph', 'none'])
-
-    parser.add_argument(
-        '--splits',
-        type=int,
-        default=4)
-
-    parser.add_argument(
-        '--num_neigh_split',
-        type=int,
-        default=4)
-
-    parser.add_argument(
         '--samp_gcn',
         default='sage',
         type=str,
@@ -447,11 +425,6 @@ def parse_opt():
         default='max',
         type=str,
         choices=['max', 'mean'])
-
-    parser.add_argument(
-        '--n_neigh_seq',
-        type=int,
-        default=4)
 
     parser.add_argument(
         '--num_levels',

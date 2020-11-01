@@ -97,9 +97,6 @@ class NeighConv(nn.Module):
         self.agg_type = opt['agg_mode'] if agg_type == None else agg_type
         self.edge_weight = opt['edge_weight'] if edge_weight== None else edge_weight
 
-        self.split_gcn = opt['split_gcn']
-        self.num_neigh_split = opt['num_neigh_split']
-        self.split_temp_edge = opt['split_temp_edge']
         self.mlp = nn.Linear(in_features*2, out_features)
 
     def forward(self, feat_prop, neigh_idx):
@@ -136,7 +133,7 @@ class NeighConv(nn.Module):
 class Graph_Layer(nn.Module):
     def __init__(self,  opt, in_channels, out_channels, bias=True):
         super(Graph_Layer, self).__init__()
-        self.n_neigh = opt['n_neigh_seq'] # 4
+        self.n_neigh = opt['num_neigh'] # 4
         self.edge_weight = opt['edge_weight_seq']  #'false'
         self.nfeat_mode = opt['nfeat_mode_seq'] #'feat_ctr'
         self.agg_type = opt['agg_type_seq']  #'max'
