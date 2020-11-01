@@ -400,7 +400,7 @@ def parse_opt():
     parser.add_argument(
         '--num_neigh',
         type=int,
-        default=4)
+        default=7)
 
     parser.add_argument(
         '--samp_thr',
@@ -512,7 +512,7 @@ def parse_opt():
 
     parser.add_argument(
         '--gcn_insert',
-        default='seq',
+        default='par',
         type=str,
         choices=['seq', 'par'])
 

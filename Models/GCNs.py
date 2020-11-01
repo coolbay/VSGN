@@ -51,11 +51,13 @@ def segment_dist_mat(target_segments, test_segments):
 
 # dynamic graph from knn
 def knn(x, y=None, k=10):
-
+    length = x.shape[-1]
     if y is None:
         y = x
 
     dif = torch.sum((x.unsqueeze(2) - y.unsqueeze(3))** 2, dim=1)
+    max_dif = torch.max(torch.max(dif, dim=1)[0], dim=1)[0][:, None].repeat(1, length)
+    dif[:, range(length), range(length)] = max_dif + 1
     idx = dif.topk(k=k, dim=-1, largest=False)[1]
 
     return idx
