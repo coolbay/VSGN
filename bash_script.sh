@@ -1,7 +1,6 @@
 #!/bin/bash
 
 #SBATCH --job-name stl
-#SBATCH --array=1-7
 #SBATCH --time=0-04:00:00
 #SBATCH -o gpu.%A.out
 #SBATCH -e gpu.%A.err
@@ -27,9 +26,9 @@ fi
 echo $SLURM_ARRAY_TASK_ID
 IOU_BOUND='0.45 0.95'
 TRAIN_LR=0.0005
-GAP=$(sed -n "$((SLURM_ARRAY_TASK_ID))"p hp.txt)
+N_NEIGH=10
 
-TRAIN_FLAG="${DATASET}_${DATE_TIME}_lr${TRAIN_LR}_GAP${GAP}"
+TRAIN_FLAG="${DATASET}_${DATE_TIME}_lr${TRAIN_LR}_neigh${N_NEIGH}"
 CKP_PATH=./checkpoint_${TRAIN_FLAG}
 OUTPUT_PATH=./output_${TRAIN_FLAG}
 LOG_TRAIN="${CKP_PATH}/log_train.txt"
@@ -67,14 +66,14 @@ then
         mkdir -p ${CKP_PATH}
     fi
     echo Logging output to "$LOG_TRAIN"
-    python Train.py  --iou_thr_bound ${IOU_BOUND} \
+    CUDA_VISIBLE_DEVICES=2,3 python Train.py  --iou_thr_bound ${IOU_BOUND} \
         --feature_path ${DATA_PATH} \
         --checkpoint_path ${CKP_PATH}  \
         --is_train true   \
         --dataset ${DATASET}   \
         --batch_size  32  \
 	    --train_lr ${TRAIN_LR}  \
-	    --stitch_gap ${GAP} | tee -a "$LOG_TRAIN"
+	    --num_neigh ${N_NEIGH} | tee -a "$LOG_TRAIN"
 fi
 
 if [[ $2 =~ .*'infer'.* ]]
@@ -88,13 +87,13 @@ then
     fi
     mkdir -p ${OUTPUT_PATH}
     echo Logging output to "$LOG_TEST"
-    python Infer.py  --output_path ${OUTPUT_PATH}    \
+    CUDA_VISIBLE_DEVICES=2,3 python Infer.py  --output_path ${OUTPUT_PATH}    \
         --feature_path ${DATA_PATH} \
         --checkpoint_path ${CKP_PATH}   \
         --is_train false  \
         --dataset ${DATASET}   \
         --batch_size  32  \
-	    --stitch_gap ${GAP}  | tee -a "$LOG_TEST"
+	    --num_neigh ${N_NEIGH}  | tee -a "$LOG_TEST"
 fi
 
 if [[ $2 =~ .*'eval'.* ]]
