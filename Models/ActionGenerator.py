@@ -28,7 +28,10 @@ class ActionGenerator(object):
         anchors_update = torch.stack(loc_enc, dim=0)
         cls_pred_dec = [cls_pred_dec[i] for i in range(len(cls_pred_dec)-1, -1, -1)]
         reg_pred_dec = [reg_pred_dec[i] for i in range(len(reg_pred_dec)-1, -1, -1)]
-        loc_dec, score_dec, label_dec = self._call_one_stage(cls_pred_dec, reg_pred_dec, anchors_update)
+        # loc_dec, score_dec, label_dec = self._call_one_stage(cls_pred_dec, reg_pred_dec, anchors_update)
+
+        _, score_dec, _ = self._call_one_stage(cls_pred_dec, reg_pred_dec, anchors_update)
+        loc_dec, _, _ = self._call_one_stage(cls_pred_dec, reg_pred_dec, all_anchors)
 
         return torch.stack(score_enc, dim=0), torch.stack(loc_enc, dim=0), torch.stack(score_dec, dim=0), torch.stack(loc_dec, dim=0)
 

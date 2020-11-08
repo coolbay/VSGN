@@ -56,10 +56,13 @@ class LossComputation(object):
             anchors_update.append(self.box_coder.decode(pred, anchor).view(bs, -1,2))
         cls_pred_dec = [cls_pred_dec[i] for i in range(len(cls_pred_dec)-1, -1, -1)]
         reg_pred_dec = [reg_pred_dec[i] for i in range(len(reg_pred_dec)-1, -1, -1)]
-        cls_loss1, reg_loss1 = self._loss_one_stage(cls_pred_dec, reg_pred_dec, gt_bbox, num_gt, anchors_update, stage=1)
+        # cls_loss1, reg_loss1 = self._loss_one_stage(cls_pred_dec, reg_pred_dec, gt_bbox, num_gt, anchors_update, stage=1)
+
+        cls_loss1, _ = self._loss_one_stage(cls_pred_dec, reg_pred_dec, gt_bbox, num_gt, anchors_update, stage=1)
+        _, reg_loss1 = self._loss_one_stage(cls_pred_dec, reg_pred_dec, gt_bbox, num_gt, anchors, stage=1)
 
         loc_dec = []
-        for pred, anchor in zip(reg_pred_dec, anchors_update):
+        for pred, anchor in zip(reg_pred_dec, anchors):
             pred = pred.permute(0, 2, 1).reshape(-1, 2)
             anchor = anchor.view(-1, 2)
             loc_dec.append(self.box_coder.decode(pred, anchor).view(bs, -1,2))
