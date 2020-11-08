@@ -117,7 +117,7 @@ def parse_opt():
     parser.add_argument(
         '--train_lr',
         type=float,
-        default=0.00005)
+        default=0.0001)
     parser.add_argument(
         '--segmentor_lr',
         type=float,
