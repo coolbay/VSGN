@@ -378,7 +378,7 @@ def parse_opt():
     parser.add_argument(
         '--num_neigh',
         type=int,
-        default=7)
+        default=10)
 
     parser.add_argument(
         '--samp_thr',
