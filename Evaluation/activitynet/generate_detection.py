@@ -115,28 +115,38 @@ def min_max(x):
     x=(x-min(x))/(max(x)-min(x))
     return x
 
-def gen_detections_video(opt, idx, video_name, video_info, cuhk_score, cuhk_class_1):
+def gen_detections_video(opt, idx, video_name, video_info, video_score, video_cls):
 
-    cuhk_score_1 = max(cuhk_score)
+    v_score_1 = np.max(video_score)
+    v_class_1 = video_cls[np.argmax(video_score)]
+    video_score[np.argmax(video_score)] = -1
+    v_score_2 = np.max(video_score)
+    v_class_2 = video_cls[np.argmax(video_score)]
+
 
     df=pd.read_csv(os.path.join(opt["output_path"], opt["prop_path"])+ "/" + video_name+".csv")
     df['score']=df.score.values[:]
     if len(df)>1:
         df=soft_nms(df, opt["nms_alpha_detect"])
-    else:
-        df=df
+
     df=df.sort_values(by="score",ascending=False)
     video_duration=float(video_info["duration_frame"]/16*16)/video_info["duration_frame"]*video_info["duration_second"]
     proposal_list=[]
 
-    for j in range(min(100,len(df))):
-        tmp_proposal={}
-        tmp_proposal["label"]=cuhk_class_1
-        tmp_proposal["score"]=df.score.values[j] * cuhk_score_1
-        tmp_proposal["segment"]=[max(0,df.xmin.values[j])*video_duration,min(1,df.xmax.values[j])*video_duration]
+    for j in range(min(100, len(df))):
+        tmp_proposal = {}
+        tmp_proposal["label"] = str(v_class_1)
+        tmp_proposal["score"] = float(df.score.values[j] * v_score_1)
+        tmp_proposal["segment"] = [max(0, df.xmin.values[j]) * video_duration,
+                                   min(1, df.xmax.values[j]) * video_duration]
         proposal_list.append(tmp_proposal)
-
-    # print('The {}-th video {} is finished'.format(idx, video_name))
+    for j in range(min(100, len(df))):
+        tmp_proposal = {}
+        tmp_proposal["label"] = str(v_class_2)
+        tmp_proposal["score"] = float(df.score.values[j] * v_score_2)
+        tmp_proposal["segment"] = [max(0, df.xmin.values[j]) * video_duration,
+                                   min(1, df.xmax.values[j]) * video_duration]
+        proposal_list.append(tmp_proposal)
 
     return {video_name[2:]: proposal_list}
 
@@ -156,8 +166,9 @@ def gen_detections_multiproc(opt):
             video_name,
             val_dict[video_name],
             cuhk_data_score[video_name[2:]],
-            cuhk_data_action[np.argmax(cuhk_data_score[video_name[2:]])]
+            cuhk_data_action
         ) for idx, video_name in enumerate(video_list))
+
     result_dict={}
     [result_dict.update(d) for d in detection]
 
