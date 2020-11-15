@@ -9,9 +9,8 @@ import os
 import torch
 import h5py
 import pickle
-
-
-
+import torch.nn.functional as F
+from scipy.io import loadmat
 
 def load_json(file):
     with open(file) as json_file:
@@ -25,178 +24,179 @@ class VideoDataSet(data.Dataset):
         self.prop_temporal_scale = opt["prop_temporal_scale"]
         self.feat_dim = opt['feat_dim']
         self.temporal_gap = 1. / self.temporal_scale
-        self.subset = subset
+        self.subset = 'val' if ('train' in subset) else 'test'
         self.mode = mode
         self.feature_path = opt["feature_path"]
         self.boundary_ratio = opt["boundary_ratio"]
-        self.thumos_win_path = opt["thumos_win_path"]
-        # self.video_anno_path = opt["video_anno"]
-        # self.anet_classes = opt["anet_classes"]
         self.binary_actionness = opt['binary_actionness']
+        self.gap = opt['stitch_gap']
+        self.short_ratio = opt['short_ratio']
+        self.video_anno = opt['video_anno']
+        self.thumos_classes = opt["thumos_classes"]
 
-        self.get_roidb(self.thumos_win_path, self.subset, self.temporal_scale)
-        # self._getDatasetDict()
-        self._get_match_map()
+        if 'val' in self.subset:
+            self.video_windows = load_json('./Utils/video_win_val.json')
+        elif 'test' in  self.subset:
+            self.video_windows = load_json('./Utils/video_win_test.json')
 
-    def get_roidb(self, path, subset, scale):
-        full_path = path + subset + '_data_' + str(scale) + '.pkl'
-        self.video_list = pickle.load(open(full_path, 'rb'))
+        self._getDatasetDict()
 
-        name_dict = {}
-        for v_win in self.video_list:
-            v_name = v_win['rgb'].split('/')[-1]
-            if v_name not in name_dict.keys():
-                name_dict[v_name] = 0
-            else:
-                name_dict[v_name] += 1
-            v_win['win_idx'] = name_dict[v_name]
+        self.anchor_xmin = [self.temporal_gap * i for i in range(self.temporal_scale)]
+        self.anchor_xmax = [self.temporal_gap * i for i in range(1, self.temporal_scale + 1)]
 
-    # def _generate_classes(self, data):
-    #     class_list = []
-    #     for vid, vinfo in data['database'].items():
-    #         for item in vinfo['annotations']:
-    #             class_list.append(item['label'])
-    #
-    #     class_list = list(set(class_list))
-    #     class_list = sorted(class_list)
-    #     classes = {'Background': 0}
-    #     for i,cls in enumerate(class_list):
-    #         classes[cls] = i + 1
-    #     return classes
+    def _getDatasetDict(self):
 
-    # def _getDatasetDict(self):
-    #     anno_df = pd.read_csv(self.video_info_path)
-    #     anno_database = load_json(self.video_anno_path)
-    #     self.video_dict = {}
-    #     class_list = []
-    #     for i in range(len(anno_df)):
-    #         video_name = anno_df.video.values[i]
-    #         # if video_name == 'v_Bg-0ibLZrgg' or video_name == 'v_0dkIbKXXFzI' or video_name == 'v_fmtW5lcdT_0' or video_name == 'v_x0PE_98UO3s':
-    #         #     continue
-    #         video_info = anno_database[video_name]
-    #         video_subset = anno_df.subset.values[i]
-    #         if self.subset == "full":
-    #             self.video_dict[video_name] = video_info
-    #         if self.subset in video_subset:
-    #             self.video_dict[video_name] = video_info
-    #         for item in video_info['annotations']:
-    #             class_list.append(item['label'])
-    #
-    #     self.video_list = self.video_dict.keys()
-    #
-    #     if os.path.exists(self.anet_classes):
-    #         with open(self.anet_classes, 'r') as f:
-    #             self.classes = json.load(f)
-    #     else:
-    #         class_list = list(set(class_list))
-    #         class_list = sorted(class_list)
-    #         self.classes = {'Background': 0}
-    #         for i,cls in enumerate(class_list):
-    #             self.classes[cls] = i + 1
-    #         with open(self.anet_classes, 'w') as f:
-    #             f.write(json.dumps(self.classes))
-    #
-    #     "%s subset video numbers: %d" % (self.subset, len(self.video_list))
+        anno_database = load_json(self.video_anno)['database']
+
+
+        self.video_dict = {}
+        class_list = []
+
+        for video_name, video_info in anno_database.items():
+
+            video_subset = 'val' if video_info['subset'] == 'train' else 'test'
+
+            for item in video_info['annotations']:
+                class_list.append(item['label'])
+                item['segment'][0] = float(item['segment'][0])
+                item['segment'][1] = float(item['segment'][1])
+
+            if self.subset in video_subset:
+
+                self.video_dict[video_name] = video_info
+
+        self.video_list = self.video_dict.keys()
+
+        if os.path.exists(self.thumos_classes):
+            with open(self.thumos_classes, 'r') as f:
+                self.classes = json.load(f)
+        else:
+            class_list = list(set(class_list))
+            class_list = sorted(class_list)
+            self.classes = {'Background': 0}
+            for i,cls in enumerate(class_list):
+                self.classes[cls] = i + 1
+            with open(self.thumos_classes, 'w') as f:
+                f.write(json.dumps(self.classes))
 
     def __getitem__(self, index):
-        video_data, anchor_xmin, anchor_xmax = self._get_base_data(index)
+        video_data, match_score_action, match_score_start, match_score_end, gt_bbox, num_gt, num_frms = self._get_train_data_label(index)
+
         if self.mode == "train":
-            if self.binary_actionness == 'true':
-                match_score_action, gt_iou_map, match_score_start, match_score_end = self._get_train_label_binary(index, anchor_xmin, anchor_xmax)
-            else:
-                match_score_action, gt_iou_map, match_score_start, match_score_end = self._get_train_label(index, anchor_xmin, anchor_xmax)
-            return video_data, match_score_action, match_score_start, match_score_end, gt_iou_map
+            return video_data, match_score_action, match_score_start, match_score_end, gt_bbox, num_gt, num_frms
         else:
-            return index, video_data
-
-    def _get_match_map(self):
-        match_map = []
-        temporal_gap = 1. / self.prop_temporal_scale
-        for idx in range(self.prop_temporal_scale):  # start
-            tmp_match_window = []
-            xmin = temporal_gap * idx
-            for jdx in range(1, self.prop_temporal_scale + 1 ):  # duration
-                xmax = xmin + temporal_gap * jdx
-                tmp_match_window.append([xmin, xmax])
-            match_map.append(tmp_match_window)
-        match_map = np.array(match_map)  # 100x100x2  # start x duration
-        match_map = np.transpose(match_map, [1, 0, 2])  #   # duration x start
-        match_map = np.reshape(match_map, [-1, 2])  # [0,1] [1,2] [2,3].....[99,199]   # duration x start
-        self.match_map = match_map  # duration is same in row, start is same in col
-
-
-    def _get_base_data(self, index):
-        item = self.video_list[index]
-        flag = 'val' if self.subset == 'train' else 'test'
-        rgb_file = h5py.File(os.path.join(self.feature_path, 'rgb_' + flag + '.h5'), 'r')
-        flow_file = h5py.File(os.path.join(self.feature_path, 'flow_' + flag + '.h5'), 'r')
-
-        video = np.zeros((self.temporal_scale, self.feat_dim))
-        video_info = item['frames'][0]
-        step =  1
-        v_name = item['rgb'].split('/')[-1]
-
-        cur_vid_rgb = rgb_file[v_name][()]
-        cur_vid_flow = flow_file[v_name][()]
-
-        numSnippet=min(len(cur_vid_rgb),len(cur_vid_flow))
-        cur_vid=np.concatenate((cur_vid_rgb[:numSnippet,:], cur_vid_flow[:numSnippet,:]),axis=1)
-
-        win_length = len(range(video_info[1], video_info[2], step))
-        video[:win_length] = cur_vid[video_info[1]: video_info[2]:step]
-        # if win_length < self.temporal_scale:
-        #     video[win_length:] = 0 # video[win_length-1]
-
-        rgb_file.close()
-        flow_file.close()
-
-        video_data = torch.Tensor(video)
-        video_data = torch.transpose(video_data, 0, 1)
-
-        anchor_xmin = [self.temporal_gap * i for i in range(self.temporal_scale)]
-        anchor_xmax = [self.temporal_gap * i for i in range(1, self.temporal_scale + 1)]
-
-        return video_data, anchor_xmin, anchor_xmax
+            return index, video_data, num_frms #, match_score_action, gt_iou_map
 
 
 
-    def _get_train_label(self, index, anchor_xmin, anchor_xmax):
+    def _get_train_data_label(self, index):
 
-        item = self.video_list[index]
-        gt_inds = np.where(item['gt_classes'] != 0)[0]
-        gt_bbox = np.empty((len(gt_inds), 3), dtype=np.float32)
-        gt_bbox[:, 0:2] = item['wins'][gt_inds, :]
-        gt_bbox[:, -1] = item['gt_classes'][gt_inds]
+        # General data
+
+        video_name = self.video_windows[index]['v_name']
+        w_start = int(self.video_windows[index]['w_start'])
+        w_end = int(self.video_windows[index]['w_end'])
+        fps_org = self.video_windows[index]['fps']
+        video_second_org = self.video_windows[index]['v_duration']
+        num_frms_win = w_end - w_start + 1
+
+        # Get video feature
+        rgb_features = h5py.File(os.path.join(self.feature_path, 'rgb_' + self.subset + '.h5'), 'r')
+        rgb_data = rgb_features[video_name][:]
+        rgb_data = torch.Tensor(rgb_data)
+        rgb_data = torch.transpose(rgb_data, 0, 1)
+
+        flow_features = h5py.File(os.path.join(self.feature_path, 'flow_' + self.subset + '.h5'), 'r')
+        flow_data = flow_features[video_name][:]
+        flow_data = torch.Tensor(flow_data)
+        flow_data = torch.transpose(flow_data, 0, 1)
+
+
+        if num_frms_win > self.temporal_scale * self.short_ratio:
+            return self._get_train_data_label_org(rgb_data, flow_data, video_name,  w_start, w_end, fps_org, video_second_org)
+        else:
+            return self._get_train_data_label_stitch(rgb_data, flow_data, video_name, w_start, w_end, fps_org, video_second_org)
+
+
+
+    def _get_train_data_label_stitch(self, rgb_data, flow_data, video_name, w_start, w_end, fps_org, video_second_org):
+
+        # Get annotations
+        video_info = self.video_dict[video_name]
+        video_labels_org = video_info['annotations']
+        num_frms_org = rgb_data.shape[-1]
+
+        if video_name == 'video_validation_0000188' or video_name == 'video_validation_0000369':
+            a = 1
+
+
+        video_labels_frm = []
+        for label in video_labels_org:
+            label_start_frm = max(0, round(label['segment'][0] * fps_org))
+            label_end_frm = min(round(label['segment'][1] * fps_org), num_frms_org - 1)
+            if label_start_frm >= w_start and label_end_frm <= w_end:
+                label_frm = {}
+                label_frm['segment'] = []
+                label_frm['segment'].append(label_start_frm - w_start)
+                label_frm['segment'].append(label_end_frm - w_start)
+                label_frm['label'] = label['label']
+                video_labels_frm.append(label_frm)
+
+        num_frms1 = w_end - w_start + 1
+        clip_second = num_frms1 / fps_org
+        video_data = torch.zeros(self.feat_dim, self.temporal_scale)
+
+        # Left part: original length
+        rgb_data1 = rgb_data[:, w_start: w_end+1]
+        flow_data1 = flow_data[:, w_start: w_end+1]
+        video_data[:, :num_frms1] = torch.cat((rgb_data1, flow_data1), dim=0)
+
+        # Right part: rescaled length
+        num_frms2 = self.temporal_scale - num_frms1 - self.gap
+        rgb_data2 = F.interpolate(rgb_data1[None,:,:], size=num_frms2, mode='linear', align_corners=True).squeeze(0)
+        flow_data2 = F.interpolate(flow_data1[None,:,:], size=num_frms2, mode='linear', align_corners=True).squeeze(0)
+        video_data[:, -num_frms2:] = torch.cat((rgb_data2, flow_data2), dim=0)
 
         # Get gt_iou_map
-        gt_iou_map = []
-        for j, gt_b in enumerate(gt_bbox):
-            tmp_start = gt_b[0] / self.temporal_scale
-            tmp_end = gt_b[1] / self.temporal_scale
-            tmp_gt_iou_map = iou_with_anchors(
-                self.match_map[:, 0], self.match_map[:, 1], tmp_start, tmp_end)
-            tmp_gt_iou_map = np.reshape(tmp_gt_iou_map,
-                                        [self.prop_temporal_scale, self.prop_temporal_scale])
-            gt_iou_map.append(tmp_gt_iou_map)
+        gt_bbox = []
+        for j in range(len(video_labels_frm)):
+            tmp_info = video_labels_frm[j]
+            tmp_start_f = max(min(num_frms1-1, tmp_info['segment'][0] ), 0)
+            tmp_end_f = max(min(num_frms1-1, tmp_info['segment'][1]), 0)
 
-        gt_iou_map = np.array(gt_iou_map)
-        gt_iou_map = np.max(gt_iou_map, axis=0)
-        gt_iou_map = torch.Tensor(gt_iou_map)
+            tmp_start = tmp_start_f / self.temporal_scale
+            tmp_end = tmp_end_f / self.temporal_scale
+
+            tmp_class = self.classes[tmp_info['label']]
+            gt_bbox.append([tmp_start, tmp_end, tmp_class])
+
+        for j in range(len(video_labels_frm)):
+            tmp_info = video_labels_frm[j]
+            tmp_start_f = max(min(num_frms2-1, tmp_info['segment'][0]), 0) + num_frms1 + self.gap
+            tmp_end_f = max(min(num_frms2-1, tmp_info['segment'][1]), 0) + num_frms1 + self.gap
+
+            tmp_start = tmp_start_f / self.temporal_scale
+            tmp_end = tmp_end_f / self.temporal_scale
+
+            tmp_class = self.classes[tmp_info['label']]
+            gt_bbox.append([tmp_start, tmp_end, tmp_class])
 
         # Get actionness scores
         match_score_action = [0] * self.temporal_scale
         for bbox in gt_bbox:
-            left_frm = max(int(bbox[0]), 0)
-            right_frm = min(int(bbox[1]), self.temporal_scale)
-            match_score_action[left_frm:right_frm] = [bbox[2]] * (right_frm - left_frm)
+            left_frm = max(round(bbox[0] * self.temporal_scale), 0)
+            right_frm = min(round(bbox[1] * self.temporal_scale), self.temporal_scale-1)
+            match_score_action[left_frm:right_frm+1] = [bbox[2]] * (right_frm + 1 - left_frm)
 
         match_score_action = torch.Tensor(match_score_action)
 
         ####################################################################################################
         # generate R_s and R_e
         gt_bbox = np.array(gt_bbox)
-        gt_xmins = gt_bbox[:, 0] / self.temporal_scale
-        gt_xmaxs = gt_bbox[:, 1] / self.temporal_scale
+        if gt_bbox.shape[0] == 0:
+            print(gt_bbox.shape)
+        gt_xmins = gt_bbox[:, 0]
+        gt_xmaxs = gt_bbox[:, 1]
         gt_len_small = 3 * self.temporal_gap  # np.maximum(self.temporal_gap, self.boundary_ratio * gt_lens)
         gt_start_bboxs = np.stack((gt_xmins - gt_len_small / 2, gt_xmins + gt_len_small / 2), axis=1)
         gt_end_bboxs = np.stack((gt_xmaxs - gt_len_small / 2, gt_xmaxs + gt_len_small / 2), axis=1)
@@ -205,77 +205,117 @@ class VideoDataSet(data.Dataset):
         ##########################################################################################################
         # calculate the ioa for all timestamp
         match_score_start = []
-        for jdx in range(len(anchor_xmin)):
+        for jdx in range(len(self.anchor_xmin)):
             match_score_start.append(np.max(
-                self._ioa_with_anchors(anchor_xmin[jdx], anchor_xmax[jdx], gt_start_bboxs[:, 0], gt_start_bboxs[:, 1])))
+                self._ioa_with_anchors(self.anchor_xmin[jdx], self.anchor_xmax[jdx], gt_start_bboxs[:, 0], gt_start_bboxs[:, 1])))
         match_score_end = []
-        for jdx in range(len(anchor_xmin)):
+        for jdx in range(len(self.anchor_xmin)):
             match_score_end.append(np.max(
-                self._ioa_with_anchors(anchor_xmin[jdx], anchor_xmax[jdx], gt_end_bboxs[:, 0], gt_end_bboxs[:, 1])))
+                self._ioa_with_anchors(self.anchor_xmin[jdx], self.anchor_xmax[jdx], gt_end_bboxs[:, 0], gt_end_bboxs[:, 1])))
         match_score_start = torch.Tensor(match_score_start)
         match_score_end = torch.Tensor(match_score_end)
         ############################################################################################################
 
-        return match_score_action, gt_iou_map, match_score_start, match_score_end
+        max_num_box = 50
+        gt_bbox = torch.tensor(gt_bbox, dtype=torch.float32)
+        gt_bbox_padding = gt_bbox.new(max_num_box, gt_bbox.size(1)).zero_()
+        num_gt = min(gt_bbox.size(0), max_num_box)
+        gt_bbox_padding[:num_gt, :] = gt_bbox[:num_gt]
+        # labels = BoxList(torch.Tensor(gt_bbox))
+
+        return video_data, match_score_action, match_score_start, match_score_end, gt_bbox_padding, num_gt, num_frms1
 
 
-    def _get_train_label_binary(self, index, anchor_xmin, anchor_xmax):
-        video_name = list(self.video_list)[index]
+
+    def _get_train_data_label_org(self, rgb_data, flow_data, video_name,  w_start, w_end,  fps, video_second):
+
+
+        video_data = torch.zeros(self.feat_dim, self.temporal_scale)
+        num_frms_org = rgb_data.shape[-1]
+
+
+        rgb_data = rgb_data[:, w_start: w_end+1]
+        flow_data = flow_data[:, w_start: w_end+1]
+
+        num_frms = min(rgb_data.shape[-1], self.temporal_scale)
+        video_data[:, :num_frms] = torch.cat((rgb_data[:, :num_frms], flow_data[:,:num_frms]), dim=0)
+
+        # Get annotations
         video_info = self.video_dict[video_name]
-        video_frame = video_info['duration_frame']
-        video_second = video_info['duration_second']
-        feature_frame = video_info['feature_frame']
-        corrected_second = float(feature_frame) / video_frame * video_second
         video_labels = video_info['annotations']
 
+        video_labels_frm = []
+        for label in video_labels:
+            label_start_frm = max(0, round(label['segment'][0] * fps))
+            label_end_frm = min(round(label['segment'][1] * fps), num_frms_org - 1)
+            if label_start_frm >= w_start and label_end_frm <= w_end:
+                label_frm = {}
+                label_frm['segment'] = []
+                label_frm['segment'].append(label_start_frm - w_start)
+                label_frm['segment'].append(label_end_frm - w_start)
+                label_frm['label'] = label['label']
+                video_labels_frm.append(label_frm)
 
         # Get gt_iou_map
         gt_bbox = []
-        gt_iou_map = []
-        for j in range(len(video_labels)):
-            tmp_info = video_labels[j]
-            tmp_start = max(min(1, tmp_info['segment'][0] / corrected_second), 0)
-            tmp_end = max(min(1, tmp_info['segment'][1] / corrected_second), 0)
+        for j in range(len(video_labels_frm)):
+            tmp_info = video_labels_frm[j]
+
+            tmp_start_f = max(min(num_frms-1, tmp_info['segment'][0]), 0)
+            tmp_end_f = max(min(num_frms-1, tmp_info['segment'][1]), 0)
+
+            tmp_start = tmp_start_f / self.temporal_scale
+            tmp_end = tmp_end_f / self.temporal_scale
+
             tmp_class = self.classes[tmp_info['label']]
             gt_bbox.append([tmp_start, tmp_end, tmp_class])
 
-            tmp_gt_iou_map = iou_with_anchors(
-                self.match_map[:, 0], self.match_map[:, 1], tmp_start, tmp_end)
-            tmp_gt_iou_map = np.reshape(tmp_gt_iou_map,
-                                        [self.prop_temporal_scale, self.prop_temporal_scale])
-            gt_iou_map.append(tmp_gt_iou_map)
 
-        gt_iou_map = np.array(gt_iou_map)
-        gt_iou_map = np.max(gt_iou_map, axis=0)
-        gt_iou_map = torch.Tensor(gt_iou_map)
+        # Get actionness scores
+        match_score_action = [0] * self.temporal_scale
+        for bbox in gt_bbox:
+            left_frm = max(round(bbox[0] * self.temporal_scale), 0)
+            right_frm = min(round(bbox[1] * self.temporal_scale), self.temporal_scale-1)
+            match_score_action[left_frm:right_frm+1] = [bbox[2]] * (right_frm + 1 - left_frm)
 
+        match_score_action = torch.Tensor(match_score_action)
 
-        # Get start/end/action
+        ####################################################################################################
+        # generate R_s and R_e
         gt_bbox = np.array(gt_bbox)
+        if gt_bbox.shape[0] == 0:
+            print(gt_bbox.shape)
+
         gt_xmins = gt_bbox[:, 0]
         gt_xmaxs = gt_bbox[:, 1]
-        # gt_lens = gt_xmaxs - gt_xmins
-        gt_len_small = 3 * self.temporal_gap #np.maximum(self.temporal_gap, self.boundary_ratio * gt_lens)
+        gt_len_small = 3 * self.temporal_gap  # np.maximum(self.temporal_gap, self.boundary_ratio * gt_lens)
         gt_start_bboxs = np.stack((gt_xmins - gt_len_small / 2, gt_xmins + gt_len_small / 2), axis=1)
         gt_end_bboxs = np.stack((gt_xmaxs - gt_len_small / 2, gt_xmaxs + gt_len_small / 2), axis=1)
+        #####################################################################################################
 
-
-        match_score_action = []
-        for jdx in range(len(anchor_xmin)):
-            match_score_action.append(
-                np.max(self._ioa_with_anchors(anchor_xmin[jdx], anchor_xmax[jdx], gt_xmins, gt_xmaxs)))
+        ##########################################################################################################
+        # calculate the ioa for all timestamp
         match_score_start = []
-        for jdx in range(len(anchor_xmin)):
+        for jdx in range(len(self.anchor_xmin)):
             match_score_start.append(np.max(
-                self._ioa_with_anchors(anchor_xmin[jdx], anchor_xmax[jdx], gt_start_bboxs[:, 0], gt_start_bboxs[:, 1])))
+                self._ioa_with_anchors(self.anchor_xmin[jdx], self.anchor_xmax[jdx], gt_start_bboxs[:, 0], gt_start_bboxs[:, 1])))
         match_score_end = []
-        for jdx in range(len(anchor_xmin)):
+        for jdx in range(len(self.anchor_xmin)):
             match_score_end.append(np.max(
-                self._ioa_with_anchors(anchor_xmin[jdx], anchor_xmax[jdx], gt_end_bboxs[:, 0], gt_end_bboxs[:, 1])))
-        match_score_action = torch.Tensor(match_score_action)
+                self._ioa_with_anchors(self.anchor_xmin[jdx], self.anchor_xmax[jdx], gt_end_bboxs[:, 0], gt_end_bboxs[:, 1])))
         match_score_start = torch.Tensor(match_score_start)
         match_score_end = torch.Tensor(match_score_end)
-        return match_score_action, gt_iou_map, match_score_start, match_score_end
+        ############################################################################################################
+
+        max_num_box = 50
+        gt_bbox = torch.tensor(gt_bbox, dtype=torch.float32)
+        gt_bbox_padding = gt_bbox.new(max_num_box, gt_bbox.size(1)).zero_()
+        num_gt = min(gt_bbox.size(0), max_num_box)
+        gt_bbox_padding[:num_gt, :] = gt_bbox[:num_gt]
+        # labels = BoxList(torch.Tensor(gt_bbox))
+
+        return video_data, match_score_action, match_score_start, match_score_end, gt_bbox_padding, num_gt, num_frms
+
 
 
     def _ioa_with_anchors(self, anchors_min, anchors_max, box_min, box_max):
@@ -287,7 +327,7 @@ class VideoDataSet(data.Dataset):
         return scores
 
     def __len__(self):
-        return len(self.video_list)
+        return len(self.video_windows)
 
 
 def iou_with_anchors(anchors_min, anchors_max, box_min, box_max):

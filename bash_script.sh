@@ -11,7 +11,7 @@
 
 set -ex
 DATE_TIME=`date +'%Y-%m-%d_%H-%M-%S'`
-DATASET='activitynet'
+DATASET='thumos'
 
 if [ ${DATASET} == 'thumos' ]
 then

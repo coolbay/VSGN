@@ -5,7 +5,7 @@ def parse_opt():
     parser = argparse.ArgumentParser()
     parser.add_argument(
         '--dataset',
-        default='activitynet',
+        default='thumos',
         type=str,
         choices=['thumos', 'activitynet', 'hacs'])
 
@@ -33,7 +33,7 @@ def parse_opt():
     parser.add_argument(
         '--feature_path',
         type=str,
-        default="/media/zhaoc/Data/Datasets/ActivityNet1_3/TSN_features_rescaled1000/Anet_TSN_rf_rescaled1000_2.h5")
+        default="/media/zhaoc/Data/Datasets/Thumos14/thumos_feature_exp/TSN_pretrain_avepool_allfrms_hdf5/")
     parser.add_argument(
         '--is_train',
         default='true',
@@ -44,31 +44,28 @@ def parse_opt():
         type=int,
         default=128)  #OG-->  default=256)
 
+
     # Dataset paths settings
+    parser.add_argument(
+        '--mat_anno',
+        type=str,
+        default='/media/zhaoc/Data/Datasets/Thumos14/annotation/')
     parser.add_argument(
         '--video_info',
         type=str,
-        default="Evaluation/activitynet/annot/video_info_new.csv")
+        default="Evaluation/thumos/annot/thumos14_test_groundtruth.csv")
     parser.add_argument(
         '--video_anno',
         type=str,
-        default='Evaluation/activitynet/annot/anet_anno_action.json') #  Evaluation/activitynet/annot/anet_anno_action.json
-    parser.add_argument(
-        '--detad_anno',
-        type=str,
-        default="Evaluation/activitynet/annot/activity_net_train_val_extra_characteristics.v1-3.min.json")
-    parser.add_argument(
-        '--eval_anno',
-        type=str,
-        default="Evaluation/activitynet/annot/activity_net_1_3_new.json")
+        default="Evaluation/thumos/annot/thumos_gt.json")
     parser.add_argument(
         '--vlevel_cls_res',
         type=str,
-        default="Evaluation/activitynet/annot/cuhk_val_simp_share.json")
+        default="Evaluation/thumos/annot/uNet_test.npy")
     parser.add_argument(
-        '--anet_classes',
+        '--thumos_classes',
         type=str,
-        default="Evaluation/activitynet/annot/anet_classes_idx.json")
+        default="Evaluation/thumos/annot/thumos_classes_idx.json")
 
     # Output paths settings
 
@@ -209,7 +206,7 @@ def parse_opt():
     parser.add_argument(
         '--decoder_num_classes',
         type=int,
-        default=201)
+        default=21)
 
 
     # Boundary map settings
@@ -434,8 +431,8 @@ def parse_opt():
     parser.add_argument(
         '--anchor_scale',
         nargs='+',
-        type=int,
-        default=[8, 20])  # 8
+        type=float,
+        default=[1, 1.5])  # 4, 6; 8, 12; 16, 24; 32, 48; 64, 96
 
     parser.add_argument(
         '--num_head_layers',

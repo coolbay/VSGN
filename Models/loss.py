@@ -152,7 +152,10 @@ class LossComputation(object):
 
                 # Use the label of the corresponding gt as the classification target for the pred
                 cls_labels_cur_im = torch.zeros_like(matched_idxs)
-                cls_labels_cur_im[matched_idxs >=0] = 1
+
+                cls_labels_cur_im[:] = gt_bbox[i, matched_idxs, 2]
+
+                cls_labels_cur_im[matched_idxs <0] = 0
 
                 # Record the boundary offset as the regression target
                 matched_gts = gt_cur_im[matched_idxs.clamp(min=0)]

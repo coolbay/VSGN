@@ -90,28 +90,6 @@ class SegTAD(nn.Module):
             nn.Sigmoid()
         )
 
-
-    # def _forward_train(self, cls_pred_enc, reg_pred_enc, cls_pred_dec, reg_pred_dec, gt_bbox, num_gt):
-    #
-    #     loss_box_cls0, loss_box_reg0, loss_box_cls1, loss_box_reg1, loc_dec = self.rpn_loss_compute(
-    #         cls_pred_enc,
-    #         reg_pred_enc,
-    #         cls_pred_dec,
-    #         reg_pred_dec,
-    #         gt_bbox,
-    #         num_gt,
-    #         self.anchors)
-    #
-    #     losses = {
-    #         "loss_cls_enc": loss_box_cls0,
-    #         "loss_reg_enc": loss_box_reg0,
-    #         "loss_cls_dec": loss_box_cls1,
-    #         "loss_reg_dec": loss_box_reg1,
-    #     }
-    #
-    #     return losses, loc_dec
-
-
     def _forward_test(self, cls_pred_enc, reg_pred_enc, cls_pred_dec, reg_pred_dec):
 
         loc_enc, score_enc, loc_dec, score_dec = self.gen_predictions(cls_pred_enc, reg_pred_enc, cls_pred_dec, reg_pred_dec, self.anchors)

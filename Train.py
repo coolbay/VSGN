@@ -89,7 +89,7 @@ def Train_SegTAD(opt):
     # device_id = 0,1
     # torch.cuda.set_device(torch.device("cuda:" + str(device_id) if torch.cuda.is_available() else "cpu"))
     # torch.set_default_tensor_type('torch.cuda.FloatTensor')
-    kwargs = {'num_workers': 16, 'pin_memory': True, 'drop_last': True}
+    kwargs = {'num_workers': 1, 'pin_memory': True, 'drop_last': True}
 
     train_loader = torch.utils.data.DataLoader(VideoDataSet(opt, subset="train"),
                                                batch_size=opt["batch_size"], shuffle=True,

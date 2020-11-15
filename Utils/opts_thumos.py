@@ -5,6 +5,12 @@ def parse_opt(parser):
         
     # Dataset paths settings
     parser.add_argument(
+        '--dataset',
+        default='activitynet',
+        type=str,
+        choices=['thumos', 'activitynet', 'hacs'])
+
+    parser.add_argument(
         '--thumos_win_path',
         type=str,
         default="./Data/Thumos14/")
