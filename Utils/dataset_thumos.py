@@ -129,7 +129,7 @@ class VideoDataSet(data.Dataset):
         for label in video_labels_org:
             label_start_frm =label['segment'][0] * fps_org
             label_end_frm = label['segment'][1] * fps_org
-            if label_start_frm >= w_start and label_end_frm <= w_end:
+            if round(label_start_frm) >= w_start and round(label_end_frm) <= w_end:
                 label_frm = {}
                 label_frm['segment'] = []
                 label_frm['segment'].append(label_start_frm - w_start)

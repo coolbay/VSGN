@@ -51,6 +51,8 @@ for v_name, v_info in anno_database['database'].items():
     if flag_db not in v_info['subset']:
         continue
 
+    if v_name == 'video_validation_0000685':
+        a = 1
 
     num_frms = rgb_file[v_name][:].shape[0]
     v_df = anno_df[int(v_name[-4:])-1]
@@ -66,6 +68,7 @@ for v_name, v_info in anno_database['database'].items():
             seg_end = round(float(annot['segment'][1])* fps)
             if  (seg_start >=w_start  and seg_end<=w_end):
                 use_window = True
+                break
         if use_window:
             dict_w = {}
             dict_w['v_name'] = v_name
