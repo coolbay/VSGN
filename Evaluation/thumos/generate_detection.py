@@ -109,7 +109,7 @@ def Soft_NMS(df, nms_threshold=1e-5, num_prop=200):
     newDf['label'] = rlabel
     return newDf
 
-def _gen_detection_video(video_name, thu_label_id, result, classes, opt, num_prop=200, topk = 2):
+def _gen_detection_video(video_name, thu_label_id, result, idx_classes, opt, num_prop=200, topk = 2):
     path = os.path.join(opt["output_path"], opt["prop_path"]) + "/"
     files = [path + f for f in os.listdir(path) if  video_name in f]
     if len(files) == 0:
@@ -131,7 +131,7 @@ def _gen_detection_video(video_name, thu_label_id, result, classes, opt, num_pro
     for j in range(min(num_prop, len(df))):
         for k in range(topk):
             tmp_proposal = {}
-            tmp_proposal["label"] = classes[df.label]
+            tmp_proposal["label"] = idx_classes[int(df.label.values[j])]
             tmp_proposal["score"] = float(round(df.score.values[j], 6))
             tmp_proposal["segment"] = [float(round(max(0, df.xmin.values[j]), 1)),
                                        float(round(min(num_frames, df.xmax.values[j]), 1))]
@@ -156,6 +156,10 @@ def gen_detection_multicore(opt):
         with open(opt["thumos_classes"], 'r') as f:
             classes = json.load(f)
 
+    idx_classes = {}
+    for key, value in classes.items():
+        idx_classes[value] = key
+
     # detection_result
     thumos_gt = pd.read_csv(opt['video_info'])
 
@@ -168,8 +172,8 @@ def gen_detection_multicore(opt):
         for video in video_list
     }
 
-    parallel = Parallel(n_jobs=1, prefer="processes") # CHANGE
-    detection = parallel(delayed(_gen_detection_video)(video_name, thu_label_id, result[video_name], classes, opt)
+    parallel = Parallel(n_jobs=20, prefer="processes")
+    detection = parallel(delayed(_gen_detection_video)(video_name, thu_label_id, result[video_name], idx_classes, opt)
                         for video_name in video_list)
     detection_dict = {}
     [detection_dict.update(d) for d in detection]
