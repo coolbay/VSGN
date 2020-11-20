@@ -71,10 +71,12 @@ def Soft_NMS(df, nms_threshold=1e-5, num_prop=200):
     tstart = list(df.xmin.values[:])
     tend = list(df.xmax.values[:])
     tscore = list(df.score.values[:])
+    tlabel = list(df.label.values[:])
 
     rstart = []
     rend = []
     rscore = []
+    rlabel = []
 
     # I use a trick here, remove the detection XDD
     # which is longer than 300
@@ -93,28 +95,30 @@ def Soft_NMS(df, nms_threshold=1e-5, num_prop=200):
         rstart.append(tstart[max_index])
         rend.append(tend[max_index])
         rscore.append(tscore[max_index])
+        rlabel.append(tlabel[max_index])
+
         tstart.pop(max_index)
         tend.pop(max_index)
         tscore.pop(max_index)
+        tlabel.pop(max_index)
 
     newDf = pd.DataFrame()
     newDf['score'] = rscore
     newDf['xmin'] = rstart
     newDf['xmax'] = rend
+    newDf['label'] = rlabel
     return newDf
 
-def _gen_detection_video(video_name, video_cls, thu_label_id, result, opt, num_prop=200, topk = 2):
+def _gen_detection_video(video_name, thu_label_id, result, classes, opt, num_prop=200, topk = 2):
     path = os.path.join(opt["output_path"], opt["prop_path"]) + "/"
     files = [path + f for f in os.listdir(path) if  video_name in f]
     if len(files) == 0:
-        # raise FileNotFoundError('Missing result for video {}'.format(video_name))
         print('Missing result for video {}'.format(video_name)) # video_test_0001292, video_test_0000504
         return {video_name:[]}
 
     dfs = []  # merge pieces of video
     for snippet_file in files:
         snippet_df = pd.read_csv(snippet_file)
-        snippet_df['score'] = snippet_df.clr_score.values[:] * snippet_df.reg_socre.values[:]
         snippet_df = Soft_NMS(snippet_df, nms_threshold=opt['nms_alpha_detect'])
         dfs.append(snippet_df)
     df = pd.concat(dfs)
@@ -122,21 +126,15 @@ def _gen_detection_video(video_name, video_cls, thu_label_id, result, opt, num_p
         df = Soft_NMS(df, nms_threshold=opt['nms_alpha_detect'])
     df = df.sort_values(by="score", ascending=False)
 
-    # sort video classification
-    video_cls_rank = sorted((e, i) for i, e in enumerate(video_cls))
-    unet_classes = [thu_label_id[video_cls_rank[-k-1][1]] + 1 for k in range(topk)]
-    unet_scores = [video_cls_rank[-k-1][0] for k in range(topk)]
-
-    fps = result['fps']
     num_frames = result['num_frames']
     proposal_list = []
     for j in range(min(num_prop, len(df))):
         for k in range(topk):
             tmp_proposal = {}
-            tmp_proposal["label"] = thumos_class[int(unet_classes[k])]
-            tmp_proposal["score"] = float(round(df.score.values[j] * unet_scores[k], 6))
-            tmp_proposal["segment"] = [float(round(max(0, df.xmin.values[j]) / fps, 1)),
-                                       float(round(min(num_frames, df.xmax.values[j]) / fps, 1))]
+            tmp_proposal["label"] = classes[thumos_class[df.label]]
+            tmp_proposal["score"] = float(round(df.score.values[j], 6))
+            tmp_proposal["segment"] = [float(round(max(0, df.xmin.values[j]), 1)),
+                                       float(round(min(num_frames, df.xmax.values[j]), 1))]
             proposal_list.append(tmp_proposal)
     return {video_name:proposal_list}
 
@@ -149,9 +147,14 @@ def gen_detection_multicore(opt):
     thu_label_id = np.sort(thumos_test_anno.type_idx.unique())[1:] - 1  # get thumos class id
     thu_video_id = np.array([int(i[-4:]) - 1 for i in video_list])  # -1 is to match python index
 
-    # load video level classification
-    cls_data = np.load(opt['vlevel_cls_res'])
-    cls_data = cls_data[thu_video_id,:][:, thu_label_id]  # order by video list, output 213x20
+    # # load video level classification
+    # cls_data = np.load(opt['vlevel_cls_res'])
+    # cls_data = cls_data[thu_video_id,:][:, thu_label_id]  # order by video list, output 213x20
+
+    # load all categories
+    if os.path.exists(opt["thumos_classes"]):
+        with open(opt["thumos_classes"], 'r') as f:
+            classes = json.load(f)
 
     # detection_result
     thumos_gt = pd.read_csv(opt['video_info'])
@@ -159,15 +162,15 @@ def gen_detection_multicore(opt):
     result = {
         video:
             {
-                'fps': thumos_gt.loc[thumos_gt['video-name'] == video]['frame-rate'].values[0],
+                # 'fps': thumos_gt.loc[thumos_gt['video-name'] == video]['frame-rate'].values[0],
                 'num_frames': thumos_gt.loc[thumos_gt['video-name'] == video]['video-frames'].values[0]
             }
         for video in video_list
     }
 
-    parallel = Parallel(n_jobs=30, prefer="processes")
-    detection = parallel(delayed(_gen_detection_video)(video_name, video_cls, thu_label_id, result[video_name], opt)
-                        for video_name, video_cls in zip(video_list, cls_data ))
+    parallel = Parallel(n_jobs=1, prefer="processes") # CHANGE
+    detection = parallel(delayed(_gen_detection_video)(video_name, thu_label_id, result[video_name], classes, opt)
+                        for video_name in video_list)
     detection_dict = {}
     [detection_dict.update(d) for d in detection]
     output_dict = {"version": "THUMOS14", "results": detection_dict, "external_data": {}}

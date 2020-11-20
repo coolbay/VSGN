@@ -55,6 +55,7 @@ for v_name, v_info in anno_database['database'].items():
     v_df = anno_df[int(v_name[-4:])-1]
     fps = num_frms / v_df[duration_idx][0][0]
 
+    cnt = 0
     # For each size=1280 window
     for w_start in range(0, num_frms, step):
         w_end = min(w_start + opt['temporal_scale'], num_frms) - 1
@@ -65,7 +66,9 @@ for v_name, v_info in anno_database['database'].items():
         dict_w['w_end'] = w_end
         dict_w['fps'] = fps
         dict_w['v_duration'] = v_df[duration_idx][0][0]
+        dict_w['w_index'] = cnt
         v_clip.append(dict_w)
+        cnt += 1
 
 
 with open('./Utils/video_win_infer.json', 'w') as fout:

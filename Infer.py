@@ -2,7 +2,7 @@ import sys
 sys.dont_write_bytecode = True
 import torch
 import torch.nn.parallel
-from Utils.dataset_thumos import VideoDataSet as VideoDataSet_thumos
+from Utils.dataset_thumos_infer import VideoDataSet as VideoDataSet_thumos
 from Utils.dataset_activitynet_infer import VideoDataSet as VideoDataSet_anet
 from Utils.dataset_hacs import VideoDataSet as VideoDataSet_hacs
 from Models.SegTAD import SegTAD
@@ -77,13 +77,15 @@ def infer_batch_selectprop(model,
                            prop_map_path,
                            num_frms):
 
-    loc_enc, score_enc, loc_dec, score_dec, loc_st2, pred_action, pred_start, pred_end = model(input_data.cuda(), num_frms)
+    loc_enc, score_enc, label_enc, loc_dec, score_dec, label_dec, loc_st2, pred_action, pred_start, pred_end = model(input_data.cuda(), num_frms)
 
 
     # Move variables to output to CPU
     loc_dec_batch = loc_st2.detach().cpu().numpy()
     score_enc_batch = score_enc.detach().cpu().numpy()
     score_dec_batch = score_dec.detach().cpu().numpy()
+    label_enc_batch = label_enc.detach().cpu().numpy()
+    label_dec_batch = label_dec.detach().cpu().numpy()
     pred_action_batch = pred_action.detach().cpu().numpy()
     pred_start_batch = pred_start.detach().cpu().numpy()
     pred_end_batch = pred_end.detach().cpu().numpy()
@@ -96,6 +98,8 @@ def infer_batch_selectprop(model,
             video=list(test_loader.dataset.video_list)[full_idx],
             score_enc_v = score_enc_batch[batch_idx],
             score_dec_v = score_dec_batch[batch_idx],
+            label_enc_v = label_enc_batch[batch_idx],
+            label_dec_v = label_dec_batch[batch_idx],
             loc_dec_v = loc_dec_batch[batch_idx],
             pred_action_v = pred_action_batch[batch_idx],
             pred_start_v = pred_start_batch[batch_idx],
@@ -109,15 +113,17 @@ def infer_batch_selectprop(model,
         ) for batch_idx, full_idx in enumerate(index_list))
 
 
-    # test
+    # # test
     # # For debug: one process
     # for batch_idx, full_idx in enumerate(index_list):
     #
     #     infer_v_asis(
     #             opt,
-    #         video=list(test_loader.dataset.video_list)[full_idx],
+    #         video=list(test_loader.dataset.video_windows)[full_idx],
     #         score_enc_v = score_enc_batch[batch_idx],
     #         score_dec_v = score_dec_batch[batch_idx],
+    #         label_enc_v = label_enc_batch[batch_idx],
+    #         label_dec_v = label_dec_batch[batch_idx],
     #         loc_dec_v = loc_dec_batch[batch_idx],
     #         pred_action_v = pred_action_batch[batch_idx],
     #         pred_start_v = pred_start_batch[batch_idx],
@@ -136,8 +142,8 @@ def infer_v_asis(*args, **kwargs):
 
     tscale = args[0]["temporal_scale"]
     loc_pred_v = kwargs['loc_dec_v']
-    score_enc_v = kwargs['score_enc_v']
     score_dec_v = kwargs['score_dec_v']
+    label_dec_v = kwargs['label_dec_v']
     pred_start_v = kwargs['pred_start_v']
     pred_end_v = kwargs['pred_end_v']
     proposal_path = kwargs['proposal_path']
@@ -146,9 +152,10 @@ def infer_v_asis(*args, **kwargs):
     if opt['dataset'] == 'activitynet' or opt['dataset'] == 'hacs':
         video_name = kwargs['video']
     elif opt['dataset'] == 'thumos':
-        video_name = kwargs['video']['rgb'].split('/')[-1]
-        win_start, win_end = kwargs['video']['frames'][0][1:3]
-        offset = kwargs['video']['win_idx']
+        video_name = kwargs['video']['v_name']
+        w_start = kwargs['video']['w_start']
+        offset = kwargs['video']['w_index']
+        fps = kwargs['video']['fps']
 
     loc_pred_v[:,0] = loc_pred_v[:,0].clip(min=0, max=tscale-1)
     loc_pred_v[:,1] = loc_pred_v[:,1].clip(min=0, max=tscale-1)
@@ -156,12 +163,9 @@ def infer_v_asis(*args, **kwargs):
     start_score = (pred_start_v[np.ceil(loc_pred_v[:,0]).astype('int32')] + pred_start_v[np.floor(loc_pred_v[:,0]).astype('int32')]) / 2
     end_score = (pred_end_v[np.ceil(loc_pred_v[:,1]).astype('int32')] + pred_end_v[np.floor(loc_pred_v[:,1]).astype('int32')]) / 2
 
-    score_stage0 = score_enc_v
     score_stage2 = start_score * end_score
     score = score_dec_v
 
-    if 'stage0' in opt['infer_score']:
-        score = score * score_stage0
     if 'stage2' in opt['infer_score']:
         score = score * score_stage2
 
@@ -183,17 +187,15 @@ def infer_v_asis(*args, **kwargs):
     loc_pred_v[:,0] = loc_pred_v[:,0].clip(min=0, max=num_frms_v-1)
     loc_pred_v[:,1] = loc_pred_v[:,1].clip(min=0, max=num_frms_v-1)
 
-    if opt['dataset'] == 'activitynet' or opt['dataset'] == 'hacs':
-        new_props = np.concatenate((loc_pred_v/num_frms_v, score[:, None], score[:, None], score[:, None]), axis=1)
+    if opt['dataset'] == 'thumos':
+        loc_pred_v = loc_pred_v + w_start
 
-    col_name = ["xmin", "xmax", "clr_score", "reg_socre", "score"]
-    new_df = pd.DataFrame(new_props, columns=col_name)
+        new_props = np.concatenate((loc_pred_v/fps, score[:, None], label_dec_v[:,None]), axis=1)
 
-    if opt['dataset'] == 'activitynet' or opt['dataset'] == 'hacs':
-        path = proposal_path + "/" + video_name + ".csv"
-    elif opt['dataset'] == 'thumos':
+        col_name = ["xmin", "xmax", "score", "label"]
+        new_df = pd.DataFrame(new_props, columns=col_name)
         path = proposal_path + "/" + video_name + '_' + str(offset) + ".csv"
-    new_df.to_csv(path, index=False)
+        new_df.to_csv(path, index=False)
 
 
 

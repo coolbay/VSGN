@@ -3,6 +3,7 @@ import torch
 import torch.nn as nn
 import math
 from .BoxCoder import  BoxCoder
+import torch.nn.functional as F
 
 class ActionGenerator(object):
     def __init__(self, opt):
@@ -29,16 +30,17 @@ class ActionGenerator(object):
         reg_pred_dec = [reg_pred_dec[i] for i in range(len(reg_pred_dec)-1, -1, -1)]
 
         loc_dec, _, _ = self._call_one_stage(cls_pred_dec, reg_pred_dec, all_anchors)
-        _, score_dec, _ = self._call_one_stage(cls_pred_dec, reg_pred_dec, torch.stack(loc_dec, dim=0))
+        _, score_dec, label_dec = self._call_one_stage(cls_pred_dec, reg_pred_dec, torch.stack(loc_dec, dim=0))
 
 
-        return torch.stack(score_enc, dim=0), torch.stack(loc_enc, dim=0), torch.stack(score_dec, dim=0), torch.stack(loc_dec, dim=0)
+        return torch.stack(score_enc, dim=0), torch.stack(loc_enc, dim=0), torch.stack(label_enc, dim=0), \
+               torch.stack(score_dec, dim=0), torch.stack(loc_dec, dim=0), torch.stack(label_dec, dim=0)
 
     def _call_one_stage(self, cls_pred, reg_pred, all_anchors):
 
         N = cls_pred[0].shape[0]
 
-        cls_pred = torch.cat(cls_pred, dim=2).permute(0, 2, 1).reshape(N, -1, self.num_classes).sigmoid()  # bs, levels*positions*scales, num_cls
+        cls_pred = F.softmax(torch.cat(cls_pred, dim=2).permute(0, 2, 1).reshape(N, -1, self.num_classes), dim=-1)  # bs, levels*positions*scales, num_cls
         reg_pred = torch.cat(reg_pred, dim=2).permute(0, 2, 1).reshape(N, -1, 2)   # bs, levels*positions*scales, 2
 
 
@@ -51,20 +53,13 @@ class ActionGenerator(object):
         label_res = []
         for cls_seq, reg_seq, anchor_seq, pre_nms_top_n_seq, candidate_inds_seq in zip(cls_pred, reg_pred, all_anchors, pre_nms_top_n, candidate_inds):
 
-            cls_seq1 = cls_seq[candidate_inds_seq]
-            cls_seq1, top_k_indices = cls_seq1.topk(pre_nms_top_n_seq, sorted=False)
-
-            per_candidate_nonzeros = candidate_inds_seq.nonzero()[top_k_indices, :]
-
-            per_box_loc = per_candidate_nonzeros[:, 0]
-
             loc_pred = self.box_coder.decode(
-                reg_seq[per_box_loc, :].view(-1, 2),        # levels*positions*scales, 2
-                anchor_seq[per_box_loc, :].view(-1, 2)      # levels*positions*scales, 2
+                reg_seq.view(-1, 2),        # levels*positions*scales, 2
+                anchor_seq.view(-1, 2)      # levels*positions*scales, 2
             )
 
-            score_pred = cls_seq[per_box_loc, 0]
-            label_pred = score_pred > 0.5
+            score_pred, label_pred = torch.max(cls_seq, dim=1)
+            # label_pred[score_pred<0.5] = 0
 
             loc_res.append(loc_pred)
             score_res.append(score_pred)

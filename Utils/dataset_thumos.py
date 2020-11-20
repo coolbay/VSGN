@@ -34,10 +34,13 @@ class VideoDataSet(data.Dataset):
         self.video_anno = opt['video_anno']
         self.thumos_classes = opt["thumos_classes"]
 
-        if 'val' in self.subset:
-            self.video_windows = load_json('./Utils/video_win_val.json')
-        elif 'test' in  self.subset:
-            self.video_windows = load_json('./Utils/video_win_test.json')
+        if self.mode == 'train':
+            if 'val' in self.subset:
+                self.video_windows = load_json('./Utils/video_win_val.json')
+            elif 'test' in  self.subset:
+                self.video_windows = load_json('./Utils/video_win_test.json')
+        elif self.mode == 'inference':
+            self.video_windows = load_json('./Utils/video_win_infer.json')
 
         self._getDatasetDict()
 
@@ -65,7 +68,7 @@ class VideoDataSet(data.Dataset):
 
                 self.video_dict[video_name] = video_info
 
-        self.video_list = self.video_dict.keys()
+        self.video_list = [win['v_name'] for win in self.video_windows]
 
         if os.path.exists(self.thumos_classes):
             with open(self.thumos_classes, 'r') as f:

@@ -44,7 +44,6 @@ if __name__ == '__main__':
         print("Proposal evaluation finishes! \n")
 
         # 3. Combine with the video-level classification scores and test the mAP of the detections
-
         print("---------------------------------------------------------------------------------------------")
         print("3. Detection evaluation starts!")
         print("---------------------------------------------------------------------------------------------")

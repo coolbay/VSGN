@@ -144,8 +144,6 @@ def train_SegTAD_epoch(data_loader, model, optimizer, epoch, writer, opt, bm_mas
     model.train()
 
     epoch_loss = 0
-    epoch_loss_stage0_cls = 0
-    epoch_loss_stage0_reg = 0
     epoch_loss_stage1_cls = 0
     epoch_loss_stage1_reg = 0
     epoch_loss_stage2_act = 0
@@ -172,15 +170,11 @@ def train_SegTAD_epoch(data_loader, model, optimizer, epoch, writer, opt, bm_mas
             cost_actionness = bi_loss(pred_action[:,0,:], gt_action.cuda())
         else:
             criterion = nn.CrossEntropyLoss()
-            cost_segmentation = criterion(pred_action, gt_action.cuda().long())
 
         # Loss2b: start/end loss
         cost_boundary = boundary_loss_function(pred_start.cuda(), pred_end, gt_start.cuda(), gt_end.cuda())
-        # cost_boundary = torch.zeros((1,), device=pred_bd_map.device)
 
         # Overall loss
-        loss_stage0_cls = torch.mean(losses['loss_cls_enc'])
-        loss_stage0_reg = torch.mean(losses['loss_reg_enc'])
         loss_stage1_cls = torch.mean(losses['loss_cls_dec'])
         loss_stage1_reg = torch.mean(losses['loss_reg_dec'])
         loss_stage2_act = cost_actionness
@@ -195,8 +189,6 @@ def train_SegTAD_epoch(data_loader, model, optimizer, epoch, writer, opt, bm_mas
         optimizer.step()
 
         epoch_loss += loss.cpu().detach().numpy()
-        epoch_loss_stage0_cls += loss_stage0_cls.cpu().detach().numpy()
-        epoch_loss_stage0_reg += loss_stage0_reg.cpu().detach().numpy()
         epoch_loss_stage1_cls += loss_stage1_cls.cpu().detach().numpy()
         epoch_loss_stage1_reg += loss_stage1_reg.cpu().detach().numpy()
         epoch_loss_stage2_act += loss_stage2_act.cpu().detach().numpy()
@@ -207,8 +199,6 @@ def train_SegTAD_epoch(data_loader, model, optimizer, epoch, writer, opt, bm_mas
     # plot_dist_targets(all_gt_area) # by Catherine
 
     writer.add_scalars('data/loss', {'train': epoch_loss / (n_iter + 1)}, epoch)
-    writer.add_scalars('data/loss_stage0_cls', {'train': epoch_loss_stage0_cls / (n_iter + 1)}, epoch)
-    writer.add_scalars('data/loss_stage0_reg', {'train': epoch_loss_stage0_reg / (n_iter + 1)}, epoch)
     writer.add_scalars('data/loss_stage1_cls', {'train': epoch_loss_stage1_cls / (n_iter + 1)}, epoch)
     writer.add_scalars('data/loss_stage1_reg', {'train': epoch_loss_stage1_reg / (n_iter + 1)}, epoch)
     writer.add_scalars('data/loss_stage2_act', {'train': epoch_loss_stage2_act / (n_iter + 1)}, epoch)
@@ -217,8 +207,6 @@ def train_SegTAD_epoch(data_loader, model, optimizer, epoch, writer, opt, bm_mas
 
     print("Training loss (epoch %d): "
           "total %.04f, "
-          "0 cls: %.04f, "
-          "0 reg: %.04f, "
           "1 cls: %.04f, "
           "1 reg: %.04f, "
           "2 act: %.04f, "
@@ -226,26 +214,18 @@ def train_SegTAD_epoch(data_loader, model, optimizer, epoch, writer, opt, bm_mas
           "2 reg: %.04f, " % (
               epoch,
               epoch_loss / (n_iter + 1),
-              epoch_loss_stage0_cls/(n_iter + 1),
-              epoch_loss_stage0_reg/(n_iter + 1),
               epoch_loss_stage1_cls/(n_iter + 1),
               epoch_loss_stage1_reg/(n_iter + 1),
               epoch_loss_stage2_act/(n_iter + 1),
               epoch_loss_stage2_bd/(n_iter + 1),
               epoch_loss_stage2_reg/(n_iter + 1),
           ))
-    # print((datetime.datetime.now()))
-    # state = {'epoch': epoch + 1,
-    #          'state_dict': model.state_dict()}
-    # torch.save(state, opt["checkpoint_path"] + "/checkpoint" + str(epoch) + ".pth.tar")
 
 
 def test_SegTAD_epoch(data_loader, model, epoch, writer, opt, bm_mask):
     model.eval()
 
     epoch_loss = 0
-    epoch_loss_stage0_cls = 0
-    epoch_loss_stage0_reg = 0
     epoch_loss_stage1_cls = 0
     epoch_loss_stage1_reg = 0
     epoch_loss_stage2_act = 0
@@ -268,8 +248,6 @@ def test_SegTAD_epoch(data_loader, model, epoch, writer, opt, bm_mask):
         # cost_boundary = torch.zeros((1,), device=pred_bd_map.device)
 
         # Overall loss
-        loss_stage0_cls = torch.mean(losses['loss_cls_enc'])
-        loss_stage0_reg = torch.mean(losses['loss_reg_enc'])
         loss_stage1_cls = torch.mean(losses['loss_cls_dec'])
         loss_stage1_reg = torch.mean(losses['loss_reg_dec'])
         loss_stage2_act = cost_actionness
@@ -280,8 +258,6 @@ def test_SegTAD_epoch(data_loader, model, epoch, writer, opt, bm_mask):
                + loss_stage2_act + loss_stage2_bd + loss_stage2_reg
 
         epoch_loss += loss.cpu().detach().numpy()
-        epoch_loss_stage0_cls += loss_stage0_cls.cpu().detach().numpy()
-        epoch_loss_stage0_reg += loss_stage0_reg.cpu().detach().numpy()
         epoch_loss_stage1_cls += loss_stage1_cls.cpu().detach().numpy()
         epoch_loss_stage1_reg += loss_stage1_reg.cpu().detach().numpy()
         epoch_loss_stage2_act += loss_stage2_act.cpu().detach().numpy()
@@ -290,8 +266,6 @@ def test_SegTAD_epoch(data_loader, model, epoch, writer, opt, bm_mask):
 
 
     writer.add_scalars('data/loss', {'test': epoch_loss / (n_iter + 1)}, epoch)
-    writer.add_scalars('data/loss_stage0_cls', {'test': epoch_loss_stage0_cls / (n_iter + 1)}, epoch)
-    writer.add_scalars('data/loss_stage0_reg', {'test': epoch_loss_stage0_reg / (n_iter + 1)}, epoch)
     writer.add_scalars('data/loss_stage1_cls', {'test': epoch_loss_stage1_cls / (n_iter + 1)}, epoch)
     writer.add_scalars('data/loss_stage1_reg', {'test': epoch_loss_stage1_reg / (n_iter + 1)}, epoch)
     writer.add_scalars('data/loss_stage2_act', {'test': epoch_loss_stage2_act / (n_iter + 1)}, epoch)
@@ -300,8 +274,6 @@ def test_SegTAD_epoch(data_loader, model, epoch, writer, opt, bm_mask):
 
     print("Testting loss (epoch %d): "
           "total %.04f, "
-          "0 cls: %.04f, "
-          "0 reg: %.04f, "
           "1 cls: %.04f, "
           "1 reg: %.04f, "
           "2 act: %.04f, "
@@ -309,8 +281,6 @@ def test_SegTAD_epoch(data_loader, model, epoch, writer, opt, bm_mask):
           "2 reg: %.04f, " % (
               epoch,
               epoch_loss / (n_iter + 1),
-              epoch_loss_stage0_cls/(n_iter + 1),
-              epoch_loss_stage0_reg/(n_iter + 1),
               epoch_loss_stage1_cls/(n_iter + 1),
               epoch_loss_stage1_reg/(n_iter + 1),
               epoch_loss_stage2_act/(n_iter + 1),
