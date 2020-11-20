@@ -95,7 +95,7 @@ def infer_batch_selectprop(model,
     Parallel(n_jobs=len(index_list))(
         delayed(infer_v_asis)(
             opt,
-            video=list(test_loader.dataset.video_list)[full_idx],
+            video=list(test_loader.dataset.video_windows)[full_idx],
             score_enc_v = score_enc_batch[batch_idx],
             score_dec_v = score_dec_batch[batch_idx],
             label_enc_v = label_enc_batch[batch_idx],
