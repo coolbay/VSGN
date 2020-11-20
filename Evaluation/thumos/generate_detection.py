@@ -131,7 +131,7 @@ def _gen_detection_video(video_name, thu_label_id, result, classes, opt, num_pro
     for j in range(min(num_prop, len(df))):
         for k in range(topk):
             tmp_proposal = {}
-            tmp_proposal["label"] = classes[thumos_class[df.label]]
+            tmp_proposal["label"] = classes[df.label]
             tmp_proposal["score"] = float(round(df.score.values[j], 6))
             tmp_proposal["segment"] = [float(round(max(0, df.xmin.values[j]), 1)),
                                        float(round(min(num_frames, df.xmax.values[j]), 1))]
