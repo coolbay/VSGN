@@ -124,16 +124,11 @@ class VideoDataSet(data.Dataset):
         # Get annotations
         video_info = self.video_dict[video_name]
         video_labels_org = video_info['annotations']
-        num_frms_org = rgb_data.shape[-1]
-
-        if video_name == 'video_validation_0000188' or video_name == 'video_validation_0000369':
-            a = 1
-
 
         video_labels_frm = []
         for label in video_labels_org:
-            label_start_frm = max(0, round(label['segment'][0] * fps_org))
-            label_end_frm = min(round(label['segment'][1] * fps_org), num_frms_org - 1)
+            label_start_frm =label['segment'][0] * fps_org
+            label_end_frm = label['segment'][1] * fps_org
             if label_start_frm >= w_start and label_end_frm <= w_end:
                 label_frm = {}
                 label_frm['segment'] = []
@@ -143,7 +138,6 @@ class VideoDataSet(data.Dataset):
                 video_labels_frm.append(label_frm)
 
         num_frms1 = w_end - w_start + 1
-        clip_second = num_frms1 / fps_org
         video_data = torch.zeros(self.feat_dim, self.temporal_scale)
 
         # Left part: original length
@@ -161,8 +155,8 @@ class VideoDataSet(data.Dataset):
         gt_bbox = []
         for j in range(len(video_labels_frm)):
             tmp_info = video_labels_frm[j]
-            tmp_start_f = max(min(num_frms1-1, tmp_info['segment'][0] ), 0)
-            tmp_end_f = max(min(num_frms1-1, tmp_info['segment'][1]), 0)
+            tmp_start_f = max(min(num_frms1-1, round(tmp_info['segment'][0] )), 0)
+            tmp_end_f = max(min(num_frms1-1, round(tmp_info['segment'][1] )), 0)
 
             tmp_start = tmp_start_f / self.temporal_scale
             tmp_end = tmp_end_f / self.temporal_scale
@@ -172,8 +166,8 @@ class VideoDataSet(data.Dataset):
 
         for j in range(len(video_labels_frm)):
             tmp_info = video_labels_frm[j]
-            tmp_start_f = max(min(num_frms2-1, tmp_info['segment'][0]), 0) + num_frms1 + self.gap
-            tmp_end_f = max(min(num_frms2-1, tmp_info['segment'][1]), 0) + num_frms1 + self.gap
+            tmp_start_f = max(min(num_frms2-1, round(tmp_info['segment'][0]  / num_frms1 * num_frms2)), 0) + num_frms1 + self.gap
+            tmp_end_f = max(min(num_frms2-1, round(tmp_info['segment'][1]  / num_frms1 * num_frms2)), 0) + num_frms1 + self.gap
 
             tmp_start = tmp_start_f / self.temporal_scale
             tmp_end = tmp_end_f / self.temporal_scale
