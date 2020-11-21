@@ -86,6 +86,13 @@ def Soft_NMS(df, nms_threshold=1e-5, num_prop=200):
 
     while len(tscore) > 1 and len(rscore) < num_prop and max(tscore)>0:
         max_index = tscore.index(max(tscore))
+        if tlabel[max_index] == 0:
+            tstart.pop(max_index)
+            tend.pop(max_index)
+            tscore.pop(max_index)
+            tlabel.pop(max_index)
+            continue
+
         for idx in range(0, len(tscore)):
             if idx != max_index:
                 tmp_iou = IOU(tstart[max_index], tend[max_index], tstart[idx], tend[idx])
