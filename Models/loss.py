@@ -158,6 +158,7 @@ class LossComputation(object):
 
             if self.iou_thr_method == 'fixed':
                 gt_cur_im = gt_bbox[i, :num_gt[i], :-1] * self.tscale
+                gt_label = gt_bbox[i, :num_gt[i], -1]
                 anchor_cur_im = all_anchors[i]
                 iou_matrix = self._iou_anchors_gts(anchor_cur_im, gt_cur_im)
 
@@ -167,7 +168,7 @@ class LossComputation(object):
                 # Use the label of the corresponding gt as the classification target for the pred
                 cls_labels_cur_im = torch.zeros_like(matched_idxs)
 
-                cls_labels_cur_im[:] = gt_bbox[i, matched_idxs, 2]
+                cls_labels_cur_im[:] = gt_label[matched_idxs]
 
                 cls_labels_cur_im[matched_idxs <0] = 0
 
