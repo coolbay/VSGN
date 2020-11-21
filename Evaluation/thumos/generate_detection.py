@@ -179,7 +179,7 @@ def gen_detection_multicore(opt):
         for video in video_list
     }
 
-    parallel = Parallel(n_jobs=1, prefer="processes")
+    parallel = Parallel(n_jobs=20, prefer="processes")
     detection = parallel(delayed(_gen_detection_video)(video_name, thu_label_id, result[video_name], idx_classes, opt)
                         for video_name in video_list)
     detection_dict = {}
