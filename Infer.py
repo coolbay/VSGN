@@ -77,15 +77,13 @@ def infer_batch_selectprop(model,
                            prop_map_path,
                            num_frms):
 
-    loc_enc, score_enc, label_enc, loc_dec, score_dec, label_dec, loc_st2, pred_action, pred_start, pred_end = model(input_data.cuda(), num_frms)
+    loc_enc, score_enc, loc_dec, score_dec, loc_st2, pred_action, pred_start, pred_end = model(input_data.cuda(), num_frms)
 
 
     # Move variables to output to CPU
     loc_dec_batch = loc_st2.detach().cpu().numpy()
     score_enc_batch = score_enc.detach().cpu().numpy()
     score_dec_batch = score_dec.detach().cpu().numpy()
-    label_enc_batch = label_enc.detach().cpu().numpy()
-    label_dec_batch = label_dec.detach().cpu().numpy()
     pred_action_batch = pred_action.detach().cpu().numpy()
     pred_start_batch = pred_start.detach().cpu().numpy()
     pred_end_batch = pred_end.detach().cpu().numpy()
@@ -98,8 +96,6 @@ def infer_batch_selectprop(model,
             video=list(test_loader.dataset.video_windows)[full_idx],
             score_enc_v = score_enc_batch[batch_idx],
             score_dec_v = score_dec_batch[batch_idx],
-            label_enc_v = label_enc_batch[batch_idx],
-            label_dec_v = label_dec_batch[batch_idx],
             loc_dec_v = loc_dec_batch[batch_idx],
             pred_action_v = pred_action_batch[batch_idx],
             pred_start_v = pred_start_batch[batch_idx],
@@ -122,8 +118,6 @@ def infer_batch_selectprop(model,
     #         video=list(test_loader.dataset.video_windows)[full_idx],
     #         score_enc_v = score_enc_batch[batch_idx],
     #         score_dec_v = score_dec_batch[batch_idx],
-    #         label_enc_v = label_enc_batch[batch_idx],
-    #         label_dec_v = label_dec_batch[batch_idx],
     #         loc_dec_v = loc_dec_batch[batch_idx],
     #         pred_action_v = pred_action_batch[batch_idx],
     #         pred_start_v = pred_start_batch[batch_idx],
@@ -142,7 +136,6 @@ def infer_v_asis(*args, **kwargs):
     tscale = args[0]["temporal_scale"]
     loc_pred_v = kwargs['loc_dec_v']
     score_dec_v = kwargs['score_dec_v']
-    label_dec_v = kwargs['label_dec_v']
     pred_start_v = kwargs['pred_start_v']
     pred_end_v = kwargs['pred_end_v']
     proposal_path = kwargs['proposal_path']
@@ -178,7 +171,7 @@ def infer_v_asis(*args, **kwargs):
         inds = (score_dec_v[:,j]>thresh)
         scores = (score_dec_v[:,j] * score_stage2)[inds]
         locations = loc_pred_v[inds,:]
-        labels = label_dec_v[:, j][inds]
+        labels = np.array([j]*labels.size)
         cls_dets = np.concatenate((locations, scores[:, None], labels[:, None]), axis=1)
         # order = np.argsort(-scores, 0)
         # cls_dets = cls_dets[order]

@@ -121,7 +121,7 @@ class SegTAD(nn.Module):
                 gt_bbox,
                 num_gt)
         else:
-            score_enc, loc_enc, label_pred_enc, score_dec, loc_dec, label_pred_dec = self.gen_predictions(
+            score_enc, loc_enc, score_dec, loc_dec = self.gen_predictions(
                 cls_pred_enc,
                 reg_pred_enc,
                 cls_pred_dec,
@@ -157,7 +157,7 @@ class SegTAD(nn.Module):
             return losses_rpn, actionness, start, end
         else:
             loc_st2 = self.bd_refine.update_bd(loc_dec, start_offsets, end_offsets)
-            return loc_enc, score_enc, label_pred_enc, loc_dec, score_dec, label_pred_dec, loc_st2, actionness, start, end
+            return loc_enc, score_enc, loc_dec, score_dec, loc_st2, actionness, start, end
 
 
 

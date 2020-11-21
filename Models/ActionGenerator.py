@@ -22,19 +22,19 @@ class ActionGenerator(object):
         # First stage: encoder
         anchors = [anchor.unsqueeze(0).repeat(bs, 1, 1).to(device=cls_pred_enc[0].device) for anchor in anchors]
         all_anchors = torch.cat(anchors, dim=1)          # bs, levels*positions*scales, left-right
-        loc_enc, score_enc, label_enc = self._call_one_stage(cls_pred_enc, reg_pred_enc, all_anchors)
+        loc_enc, score_enc = self._call_one_stage(cls_pred_enc, reg_pred_enc, all_anchors)
 
 
         # Second stage: decoder
         cls_pred_dec = [cls_pred_dec[i] for i in range(len(cls_pred_dec)-1, -1, -1)]
         reg_pred_dec = [reg_pred_dec[i] for i in range(len(reg_pred_dec)-1, -1, -1)]
 
-        loc_dec, _, _ = self._call_one_stage(cls_pred_dec, reg_pred_dec, all_anchors)
-        _, score_dec, label_dec = self._call_one_stage(cls_pred_dec, reg_pred_dec, torch.stack(loc_dec, dim=0))
+        loc_dec, _ = self._call_one_stage(cls_pred_dec, reg_pred_dec, all_anchors)
+        _, score_dec = self._call_one_stage(cls_pred_dec, reg_pred_dec, torch.stack(loc_dec, dim=0))
 
 
-        return torch.stack(score_enc, dim=0), torch.stack(loc_enc, dim=0), torch.stack(label_enc, dim=0), \
-               torch.stack(score_dec, dim=0), torch.stack(loc_dec, dim=0), torch.stack(label_dec, dim=0)
+        return torch.stack(score_enc, dim=0), torch.stack(loc_enc, dim=0), \
+               torch.stack(score_dec, dim=0), torch.stack(loc_dec, dim=0)
 
     def _call_one_stage(self, cls_pred, reg_pred, all_anchors):
 
@@ -50,7 +50,6 @@ class ActionGenerator(object):
 
         loc_res = []
         score_res = []
-        label_res = []
         for cls_seq, reg_seq, anchor_seq, pre_nms_top_n_seq, candidate_inds_seq in zip(cls_pred, reg_pred, all_anchors, pre_nms_top_n, candidate_inds):
 
             loc_pred = self.box_coder.decode(
@@ -59,13 +58,11 @@ class ActionGenerator(object):
             )
 
             score_pred = cls_seq
-            label_pred = torch.tensor(range(self.num_classes), device=cls_pred.device).unsqueeze(0).repeat(cls_seq.shape[0],1)
 
             loc_res.append(loc_pred)
             score_res.append(score_pred)
-            label_res.append(label_pred)
 
-        return loc_res, score_res, label_res
+        return loc_res, score_res
 
 
     def cat_boxlist(self, bboxes):
