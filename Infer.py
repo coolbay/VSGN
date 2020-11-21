@@ -92,33 +92,9 @@ def infer_batch_selectprop(model,
     num_frms_batch = num_frms.detach().cpu().numpy()
 
 
-    Parallel(n_jobs=len(index_list))(
-        delayed(infer_v_asis)(
-            opt,
-            video=list(test_loader.dataset.video_windows)[full_idx],
-            score_enc_v = score_enc_batch[batch_idx],
-            score_dec_v = score_dec_batch[batch_idx],
-            label_enc_v = label_enc_batch[batch_idx],
-            label_dec_v = label_dec_batch[batch_idx],
-            loc_dec_v = loc_dec_batch[batch_idx],
-            pred_action_v = pred_action_batch[batch_idx],
-            pred_start_v = pred_start_batch[batch_idx],
-            pred_end_v = pred_end_batch[batch_idx],
-            proposal_path = proposal_path,
-            actionness_path = actionness_path,
-            start_end_path = start_end_path,
-            prop_map_path = prop_map_path,
-            num_frms_v = num_frms_batch[batch_idx]
-
-        ) for batch_idx, full_idx in enumerate(index_list))
-
-
-    # # test
-    # # For debug: one process
-    # for batch_idx, full_idx in enumerate(index_list):
-    #
-    #     infer_v_asis(
-    #             opt,
+    # Parallel(n_jobs=len(index_list))(
+    #     delayed(infer_v_asis)(
+    #         opt,
     #         video=list(test_loader.dataset.video_windows)[full_idx],
     #         score_enc_v = score_enc_batch[batch_idx],
     #         score_dec_v = score_dec_batch[batch_idx],
@@ -133,12 +109,35 @@ def infer_batch_selectprop(model,
     #         start_end_path = start_end_path,
     #         prop_map_path = prop_map_path,
     #         num_frms_v = num_frms_batch[batch_idx]
-    #     )
+    #
+    #     ) for batch_idx, full_idx in enumerate(index_list))
+
+
+    # test
+    # For debug: one process
+    for batch_idx, full_idx in enumerate(index_list):
+
+        infer_v_asis(
+                opt,
+            video=list(test_loader.dataset.video_windows)[full_idx],
+            score_enc_v = score_enc_batch[batch_idx],
+            score_dec_v = score_dec_batch[batch_idx],
+            label_enc_v = label_enc_batch[batch_idx],
+            label_dec_v = label_dec_batch[batch_idx],
+            loc_dec_v = loc_dec_batch[batch_idx],
+            pred_action_v = pred_action_batch[batch_idx],
+            pred_start_v = pred_start_batch[batch_idx],
+            pred_end_v = pred_end_batch[batch_idx],
+            proposal_path = proposal_path,
+            actionness_path = actionness_path,
+            start_end_path = start_end_path,
+            prop_map_path = prop_map_path,
+            num_frms_v = num_frms_batch[batch_idx]
+        )
 
 
 
 def infer_v_asis(*args, **kwargs):
-
 
     tscale = args[0]["temporal_scale"]
     loc_pred_v = kwargs['loc_dec_v']
@@ -148,6 +147,7 @@ def infer_v_asis(*args, **kwargs):
     pred_end_v = kwargs['pred_end_v']
     proposal_path = kwargs['proposal_path']
     num_frms_v = kwargs['num_frms_v']
+    thresh = 0.005
 
     if opt['dataset'] == 'activitynet' or opt['dataset'] == 'hacs':
         video_name = kwargs['video']
@@ -164,40 +164,60 @@ def infer_v_asis(*args, **kwargs):
     end_score = (pred_end_v[np.ceil(loc_pred_v[:,1]).astype('int32')] + pred_end_v[np.floor(loc_pred_v[:,1]).astype('int32')]) / 2
 
     score_stage2 = start_score * end_score
-    score = score_dec_v
-
-    if 'stage2' in opt['infer_score']:
-        score = score * score_stage2
 
     if num_frms_v <= tscale * opt['short_ratio']:
-        if True:
-            indices = (loc_pred_v[:,0] >= num_frms_v)
-            loc_pred_v[indices] = loc_pred_v[indices] - num_frms_v - opt['stitch_gap']
-            loc_pred_v[indices] = loc_pred_v[indices] / (tscale - num_frms_v - opt['stitch_gap']) * num_frms_v
-        elif False:
-            indices = (loc_pred_v[:,0] >= num_frms_v)
-            loc_pred_v[indices] = loc_pred_v[indices] - num_frms_v - opt['stitch_gap']
-            loc_pred_v = loc_pred_v[indices] / (tscale - num_frms_v - opt['stitch_gap']) * num_frms_v
-            score = score[indices]
-        elif False:
-            indices = (loc_pred_v[:,0] < num_frms_v)
-            loc_pred_v = loc_pred_v[indices]
-            score = score[indices]
+        indices = (loc_pred_v[:,0] >= num_frms_v)
+        loc_pred_v[indices] = loc_pred_v[indices] - num_frms_v - opt['stitch_gap']
+        loc_pred_v[indices] = loc_pred_v[indices] / (tscale - num_frms_v - opt['stitch_gap']) * num_frms_v
 
     loc_pred_v[:,0] = loc_pred_v[:,0].clip(min=0, max=num_frms_v-1)
     loc_pred_v[:,1] = loc_pred_v[:,1].clip(min=0, max=num_frms_v-1)
 
-    if opt['dataset'] == 'thumos':
-        loc_pred_v = loc_pred_v + w_start
+    new_props = []
+    for j in range(1, opt['decoder_num_classes']):
+        inds = (score_dec_v[:,j]>thresh)
+        scores = (score_dec_v[:,j] * score_stage2)[inds]
+        locations = loc_pred_v[inds,:]
+        labels = label_dec_v[:, j][inds]
+        cls_dets = np.concatenate((locations, scores[:, None], labels[:, None]), axis=1)
+        # order = np.argsort(-scores, 0)
+        # cls_dets = cls_dets[order]
+        keep = nms(cls_dets, opt['nms_thr'])
+        if ( len(keep)>0 ):
+            cls_dets = cls_dets[keep]
 
-        new_props = np.concatenate((loc_pred_v/fps, score[:, None], label_dec_v[:,None]), axis=1)
-
-        col_name = ["xmin", "xmax", "score", "label"]
-        new_df = pd.DataFrame(new_props, columns=col_name)
-        path = proposal_path + "/" + video_name + '_' + str(offset) + ".csv"
-        new_df.to_csv(path, index=False)
+        new_props.append(cls_dets)
 
 
+    new_props = np.concatenate(new_props, axis=0)
+    new_props[:, :2] = (new_props[:, :2] + w_start) / fps
+
+    col_name = ["xmin", "xmax", "score", "label"]
+    new_df = pd.DataFrame(new_props, columns=col_name)
+    path = proposal_path + "/" + video_name + '_' + str(offset) + ".csv"
+    new_df.to_csv(path, index=False)
+
+
+
+def nms(dets, thresh=0.4):
+    """Pure Python NMS baseline."""
+    if len(dets) == 0: return []
+    x1 = dets[:, 0]
+    x2 = dets[:, 1]
+    scores = dets[:, 2]
+    lengths = x2 - x1
+    order = scores.argsort()[::-1]
+    keep = []
+    while order.size > 0:
+        i = order[0]
+        keep.append(i)
+        xx1 = np.maximum(x1[i], x1[order[1:]])
+        xx2 = np.minimum(x2[i], x2[order[1:]])
+        inter = np.maximum(0.0, xx2 - xx1)
+        ovr = inter / (lengths[i] + lengths[order[1:]] - inter)
+        inds = np.where(ovr <= thresh)[0]
+        order = order[inds + 1]
+    return keep
 
 
 

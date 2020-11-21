@@ -165,6 +165,10 @@ def parse_opt():
         '--nms_hthr_prop',
         type=float,
         default=0.9)
+    parser.add_argument(
+        '--nms_thr',
+        type=float,
+        default=0.4)
 
     # Model architecture settings
     parser.add_argument(

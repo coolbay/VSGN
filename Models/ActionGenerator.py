@@ -58,8 +58,8 @@ class ActionGenerator(object):
                 anchor_seq.view(-1, 2)      # levels*positions*scales, 2
             )
 
-            score_pred, label_pred = torch.max(cls_seq, dim=1)
-            # label_pred[score_pred<0.5] = 0
+            score_pred = cls_seq
+            label_pred = torch.tensor(range(self.num_classes), device=cls_pred.device).unsqueeze(0).repeat(cls_seq.shape[0],1)
 
             loc_res.append(loc_pred)
             score_res.append(score_pred)
