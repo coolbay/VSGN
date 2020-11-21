@@ -92,33 +92,9 @@ def infer_batch_selectprop(model,
     num_frms_batch = num_frms.detach().cpu().numpy()
 
 
-    # Parallel(n_jobs=len(index_list))(
-    #     delayed(infer_v_asis)(
-    #         opt,
-    #         video=list(test_loader.dataset.video_windows)[full_idx],
-    #         score_enc_v = score_enc_batch[batch_idx],
-    #         score_dec_v = score_dec_batch[batch_idx],
-    #         label_enc_v = label_enc_batch[batch_idx],
-    #         label_dec_v = label_dec_batch[batch_idx],
-    #         loc_dec_v = loc_dec_batch[batch_idx],
-    #         pred_action_v = pred_action_batch[batch_idx],
-    #         pred_start_v = pred_start_batch[batch_idx],
-    #         pred_end_v = pred_end_batch[batch_idx],
-    #         proposal_path = proposal_path,
-    #         actionness_path = actionness_path,
-    #         start_end_path = start_end_path,
-    #         prop_map_path = prop_map_path,
-    #         num_frms_v = num_frms_batch[batch_idx]
-    #
-    #     ) for batch_idx, full_idx in enumerate(index_list))
-
-
-    # test
-    # For debug: one process
-    for batch_idx, full_idx in enumerate(index_list):
-
-        infer_v_asis(
-                opt,
+    Parallel(n_jobs=len(index_list))(
+        delayed(infer_v_asis)(
+            opt,
             video=list(test_loader.dataset.video_windows)[full_idx],
             score_enc_v = score_enc_batch[batch_idx],
             score_dec_v = score_dec_batch[batch_idx],
@@ -133,7 +109,31 @@ def infer_batch_selectprop(model,
             start_end_path = start_end_path,
             prop_map_path = prop_map_path,
             num_frms_v = num_frms_batch[batch_idx]
-        )
+
+        ) for batch_idx, full_idx in enumerate(index_list))
+
+
+    # # test
+    # # For debug: one process
+    # for batch_idx, full_idx in enumerate(index_list):
+    #
+    #     infer_v_asis(
+    #             opt,
+    #         video=list(test_loader.dataset.video_windows)[full_idx],
+    #         score_enc_v = score_enc_batch[batch_idx],
+    #         score_dec_v = score_dec_batch[batch_idx],
+    #         label_enc_v = label_enc_batch[batch_idx],
+    #         label_dec_v = label_dec_batch[batch_idx],
+    #         loc_dec_v = loc_dec_batch[batch_idx],
+    #         pred_action_v = pred_action_batch[batch_idx],
+    #         pred_start_v = pred_start_batch[batch_idx],
+    #         pred_end_v = pred_end_batch[batch_idx],
+    #         proposal_path = proposal_path,
+    #         actionness_path = actionness_path,
+    #         start_end_path = start_end_path,
+    #         prop_map_path = prop_map_path,
+    #         num_frms_v = num_frms_batch[batch_idx]
+    #     )
 
 
 
