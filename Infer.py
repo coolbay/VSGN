@@ -171,7 +171,7 @@ def infer_v_asis(*args, **kwargs):
         inds = (score_dec_v[:,j]>thresh)
         scores = (score_dec_v[:,j] * score_stage2)[inds]
         locations = loc_pred_v[inds,:]
-        labels = np.array([j]*labels.size)
+        labels = np.array([j]*locations.shape[0])
         cls_dets = np.concatenate((locations, scores[:, None], labels[:, None]), axis=1)
         # order = np.argsort(-scores, 0)
         # cls_dets = cls_dets[order]
