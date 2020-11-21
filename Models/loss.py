@@ -1,5 +1,6 @@
 
 import torch
+import torch.nn.functional as F
 from .matcher import Matcher
 import math
 import sys
@@ -24,7 +25,7 @@ class LossComputation(object):
             self.matcher = Matcher(True)
 
         self.box_coder = BoxCoder(opt)
-        self.cls_loss_func = SigmoidFocalLoss(self.gamma, self.alpha)
+
 
     def _iou_anchors_gts(self, anchor, gt):
 
@@ -67,8 +68,6 @@ class LossComputation(object):
         cls_loss1, _ = self._loss_one_stage(cls_pred_dec, reg_pred_dec, gt_bbox, num_gt, loc_dec, stage=1)
 
 
-
-
         losses = {
             "loss_cls_enc": cls_loss0,
             "loss_reg_enc": reg_loss0,
@@ -93,10 +92,25 @@ class LossComputation(object):
         all_anchors = torch.cat(anchors, dim=1).view(-1, 2) # bs*levels*positions*scales, 2
 
         pos_inds = torch.nonzero(cls_labels > 0).squeeze(1)
-        cls_loss = self.cls_loss_func(cls_pred, cls_labels) / pos_inds.numel() #cls_pred.numel()
+        cls_loss = self.cls_loss_func(cls_pred, cls_labels)
         reg_loss = self.reg_loss_func(reg_pred[pos_inds], reg_targets[pos_inds], all_anchors[pos_inds]) / pos_inds.numel()
 
         return  cls_loss, reg_loss
+
+    def cls_loss_func(self, cls_pred, cls_labels):
+        # eps = 1e-7
+        cls_weight = cls_pred.new_ones([self.num_classes])
+        cls_weight[0] = self.alpha
+        CE_loss = torch.nn.CrossEntropyLoss(weight=cls_weight)
+
+        loss = CE_loss(cls_pred, cls_labels.to(torch.long))
+        #
+        # logits = F.softmax(cls_pred,dim=1)
+        # logits = logits.clamp(eps, 1. - eps)
+        #
+        # loss = loss * (1 - logits) ** self.gamma
+
+        return loss
 
     def reg_loss_func(self, pred, target, anchor, pred_boxes=None, weight=None):
         if type(pred_boxes) == type(None):
