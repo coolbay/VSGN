@@ -119,14 +119,14 @@ def _gen_detection_video(video_name, thu_label_id, result, idx_classes, opt, num
     dfs = []  # merge pieces of video
     for snippet_file in files:
         snippet_df = pd.read_csv(snippet_file)
-        snippet_df = Soft_NMS(snippet_df, nms_threshold=opt['nms_alpha_detect'])
+        # snippet_df = Soft_NMS(snippet_df, nms_threshold=opt['nms_alpha_detect'])
         dfs.append(snippet_df)
     df = pd.concat(dfs)
-    if len(df) > 1:
-        df = Soft_NMS(df, nms_threshold=opt['nms_alpha_detect'])
+    # if len(df) > 1:
+    df = Soft_NMS(df, nms_threshold=opt['nms_alpha_detect'])
     df = df.sort_values(by="score", ascending=False)
 
-    num_frames = result['num_frames']
+    duration = result['duration']
     proposal_list = []
     for j in range(min(num_prop, len(df))):
         for k in range(topk):
@@ -134,7 +134,7 @@ def _gen_detection_video(video_name, thu_label_id, result, idx_classes, opt, num
             tmp_proposal["label"] = idx_classes[int(df.label.values[j])]
             tmp_proposal["score"] = float(round(df.score.values[j], 6))
             tmp_proposal["segment"] = [float(round(max(0, df.xmin.values[j]), 1)),
-                                       float(round(min(num_frames, df.xmax.values[j]), 1))]
+                                       float(round(min(duration, df.xmax.values[j]), 1))]
             proposal_list.append(tmp_proposal)
     return {video_name:proposal_list}
 
@@ -167,12 +167,12 @@ def gen_detection_multicore(opt):
         video:
             {
                 # 'fps': thumos_gt.loc[thumos_gt['video-name'] == video]['frame-rate'].values[0],
-                'num_frames': thumos_gt.loc[thumos_gt['video-name'] == video]['video-frames'].values[0]
+                'duration': thumos_gt.loc[thumos_gt['video-name'] == video]['video-duration'].values[0]
             }
         for video in video_list
     }
 
-    parallel = Parallel(n_jobs=20, prefer="processes")
+    parallel = Parallel(n_jobs=1, prefer="processes")
     detection = parallel(delayed(_gen_detection_video)(video_name, thu_label_id, result[video_name], idx_classes, opt)
                         for video_name in video_list)
     detection_dict = {}
