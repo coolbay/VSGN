@@ -467,7 +467,7 @@ def parse_opt():
     parser.add_argument(
         '--focal_alpha',
         type=float,
-        default=0.35)
+        default=0.01)
 
     parser.add_argument(
         '--stitch_gap',
