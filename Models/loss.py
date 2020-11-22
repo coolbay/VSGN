@@ -101,16 +101,22 @@ class LossComputation(object):
         # eps = 1e-7
         cls_weight = cls_pred.new_ones([self.num_classes])
         cls_weight[0] = self.alpha
-        CE_loss = torch.nn.CrossEntropyLoss(weight=cls_weight)
+
+        pmask = (cls_labels>0).float()
+        nmask = (cls_labels==0).float()
+        num_pos = torch.sum(pmask)
+        num_neg = torch.sum(nmask)
+
+        CE_loss = torch.nn.CrossEntropyLoss(weight=cls_weight, reduction='none')
 
         loss = CE_loss(cls_pred, cls_labels.to(torch.long))
-        #
-        # logits = F.softmax(cls_pred,dim=1)
-        # logits = logits.clamp(eps, 1. - eps)
-        #
-        # loss = loss * (1 - logits) ** self.gamma
 
-        return loss
+        pos_loss = torch.sum(loss * pmask) / num_pos
+        neg_loss = torch.sum(loss * nmask) / num_neg
+
+        total_loss = pos_loss + neg_loss
+
+        return total_loss
 
     def reg_loss_func(self, pred, target, anchor, pred_boxes=None, weight=None):
         if type(pred_boxes) == type(None):
