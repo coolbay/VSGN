@@ -93,7 +93,7 @@ then
         --checkpoint_path ${CKP_PATH}   \
         --is_train false  \
         --dataset ${DATASET}   \
-        --batch_size  16  \
+        --batch_size  32  \
 	    --num_neigh ${N_NEIGH}  | tee -a "$LOG_TEST"
 fi
 
