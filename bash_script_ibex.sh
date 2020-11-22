@@ -1,7 +1,7 @@
 #!/bin/bash
 
 #SBATCH --job-name gcn_split
-#SBATCH --array=1-6
+#SBATCH --array=1-9
 #SBATCH --time=0-04:00:00
 #SBATCH -o gpu.%A.out
 #SBATCH -e gpu.%A.err
@@ -12,7 +12,7 @@
 
 set -ex
 DATE_TIME=`date +'%Y-%m-%d_%H-%M-%S'`
-DATASET='activitynet'
+DATASET='thumos'
 
 if [ ${DATASET} == 'thumos' ]
 then
@@ -67,7 +67,7 @@ then
         mkdir -p ${CKP_PATH}
     fi
     echo Logging output to "$LOG_TRAIN"
-    python Train.py  --iou_thr_bound ${IOU_BOUND} \
+    CUDA_VISIBLE_DEVICES=2,3 python Train.py  --iou_thr_bound ${IOU_BOUND} \
         --feature_path ${DATA_PATH} \
         --checkpoint_path ${CKP_PATH}  \
         --is_train true   \
@@ -88,12 +88,12 @@ then
     fi
     mkdir -p ${OUTPUT_PATH}
     echo Logging output to "$LOG_TEST"
-    python Infer.py  --output_path ${OUTPUT_PATH}    \
+    CUDA_VISIBLE_DEVICES=2,3 python Infer.py  --output_path ${OUTPUT_PATH}    \
         --feature_path ${DATA_PATH} \
         --checkpoint_path ${CKP_PATH}   \
         --is_train false  \
         --dataset ${DATASET}   \
-        --batch_size  32  \
+        --batch_size  16  \
 	    --num_neigh ${N_NEIGH}  | tee -a "$LOG_TEST"
 fi
 
