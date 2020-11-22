@@ -181,7 +181,7 @@ def train_SegTAD_epoch(data_loader, model, optimizer, epoch, writer, opt, bm_mas
         loss_stage2_bd = cost_boundary
         loss_stage2_reg = torch.mean(losses['loss_reg_st2'])
 
-        loss = 0.2*loss_stage1_cls + loss_stage1_reg  \
+        loss = loss_stage1_cls + loss_stage1_reg  \
                + 0.2*loss_stage2_act + 0.2*loss_stage2_bd + loss_stage2_reg
 
         optimizer.zero_grad()
@@ -254,7 +254,7 @@ def test_SegTAD_epoch(data_loader, model, epoch, writer, opt, bm_mask):
         loss_stage2_bd = cost_boundary
         loss_stage2_reg = torch.mean(losses['loss_reg_st2'])
 
-        loss = 0.2*loss_stage1_cls + loss_stage1_reg \
+        loss = loss_stage1_cls + loss_stage1_reg \
                + 0.2*loss_stage2_act + 0.2*loss_stage2_bd + loss_stage2_reg
 
         epoch_loss += loss.cpu().detach().numpy()
