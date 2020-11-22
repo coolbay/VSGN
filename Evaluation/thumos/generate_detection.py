@@ -136,13 +136,13 @@ def _gen_detection_video(video_name, thu_label_id, result, idx_classes, opt, num
     duration = result['duration']
     proposal_list = []
     for j in range(min(num_prop, len(df))):
-        for k in range(topk):
-            tmp_proposal = {}
-            tmp_proposal["label"] = idx_classes[int(df.label.values[j])]
-            tmp_proposal["score"] = float(round(df.score.values[j], 6))
-            tmp_proposal["segment"] = [float(round(max(0, df.xmin.values[j]), 1)),
-                                       float(round(min(duration, df.xmax.values[j]), 1))]
-            proposal_list.append(tmp_proposal)
+        tmp_proposal = {}
+        tmp_proposal["label"] = idx_classes[int(df.label.values[j])]
+        tmp_proposal["score"] = float(round(df.score.values[j], 6))
+        tmp_proposal["segment"] = [float(round(max(0, df.xmin.values[j]), 1)),
+                                   float(round(min(duration, df.xmax.values[j]), 1))]
+        proposal_list.append(tmp_proposal)
+
     return {video_name:proposal_list}
 
 def gen_detection_multicore(opt):
@@ -179,7 +179,7 @@ def gen_detection_multicore(opt):
         for video in video_list
     }
 
-    parallel = Parallel(n_jobs=20, prefer="processes")
+    parallel = Parallel(n_jobs=1, prefer="processes")
     detection = parallel(delayed(_gen_detection_video)(video_name, thu_label_id, result[video_name], idx_classes, opt)
                         for video_name in video_list)
     detection_dict = {}

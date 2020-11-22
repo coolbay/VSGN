@@ -98,16 +98,13 @@ class LossComputation(object):
         return  cls_loss, reg_loss
 
     def cls_loss_func(self, cls_pred, cls_labels):
-        # eps = 1e-7
-        cls_weight = cls_pred.new_ones([self.num_classes])
-        cls_weight[0] = self.alpha
 
         pmask = (cls_labels>0).float()
         nmask = (cls_labels==0).float()
         num_pos = torch.sum(pmask)
         num_neg = torch.sum(nmask)
 
-        CE_loss = torch.nn.CrossEntropyLoss(weight=cls_weight, reduction='none')
+        CE_loss = torch.nn.CrossEntropyLoss(reduction='none')
 
         loss = CE_loss(cls_pred, cls_labels.to(torch.long))
 
