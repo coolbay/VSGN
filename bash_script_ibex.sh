@@ -67,7 +67,7 @@ then
         mkdir -p ${CKP_PATH}
     fi
     echo Logging output to "$LOG_TRAIN"
-    CUDA_VISIBLE_DEVICES=2,3 python Train.py  --iou_thr_bound ${IOU_BOUND} \
+    python Train.py  --iou_thr_bound ${IOU_BOUND} \
         --feature_path ${DATA_PATH} \
         --checkpoint_path ${CKP_PATH}  \
         --is_train true   \
@@ -88,7 +88,7 @@ then
     fi
     mkdir -p ${OUTPUT_PATH}
     echo Logging output to "$LOG_TEST"
-    CUDA_VISIBLE_DEVICES=2,3 python Infer.py  --output_path ${OUTPUT_PATH}    \
+    python Infer.py  --output_path ${OUTPUT_PATH}    \
         --feature_path ${DATA_PATH} \
         --checkpoint_path ${CKP_PATH}   \
         --is_train false  \
