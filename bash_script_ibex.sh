@@ -26,8 +26,8 @@ then
 fi
 echo $SLURM_ARRAY_TASK_ID
 IOU_BOUND='0.45 0.95'
-TRAIN_LR=$(sed -n "$((SLURM_ARRAY_TASK_ID))"p hp.txt)
-N_NEIGH=10
+TRAIN_LR=0.00005
+N_NEIGH=$(sed -n "$((SLURM_ARRAY_TASK_ID))"p hp.txt)
 
 TRAIN_FLAG="${DATASET}_${DATE_TIME}_lr${TRAIN_LR}_neigh${N_NEIGH}"
 CKP_PATH=./checkpoint_${TRAIN_FLAG}

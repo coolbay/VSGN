@@ -152,7 +152,7 @@ def parse_opt():
     parser.add_argument(
         '--nms_alpha_detect',
         type=float,
-        default=0.85)
+        default=0.46)
     parser.add_argument(
         '--nms_alpha_prop',
         type=float,
