@@ -87,3 +87,11 @@ Ref: https://github.com/facebookresearch/detectron2/issues/62#issuecomment-54244
 - Boundary extention is one frame more
 - Inference 'end' is one frame different
  
+
+test_info.mat
+val_info.mat
+thumos_classes_idx.json
+
+3. thumos14_test_groundtruth.csv
+5. thumos_gt.json
+6. test_Annotation.csv

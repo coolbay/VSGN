@@ -7,7 +7,7 @@ class Head(nn.Module):
         super(Head, self).__init__()
 
         self.num_convs_head = opt['num_head_layers']  # 1
-        in_channels = opt['bb_hidden_dim']
+        bb_hidden_dim = opt['bb_hidden_dim']
         num_anchors = len(opt['anchor_scale'])
         num_classes = 1 if opt['dataset'] == 'activitynet' else opt['decoder_num_classes']
 
@@ -18,38 +18,38 @@ class Head(nn.Module):
 
             cls_tower.append(
                 conv_func(
-                    in_channels,
-                    in_channels,
+                    bb_hidden_dim,
+                    bb_hidden_dim,
                     kernel_size=3,
                     stride=1,
                     padding=1,
                     bias=True
                 )
             )
-            cls_tower.append(nn.GroupNorm(32, in_channels))
+            cls_tower.append(nn.GroupNorm(32, bb_hidden_dim))
             cls_tower.append(nn.ReLU())
 
             bbox_tower.append(
                 conv_func(
-                    in_channels,
-                    in_channels,
+                    bb_hidden_dim,
+                    bb_hidden_dim,
                     kernel_size=3,
                     stride=1,
                     padding=1,
                     bias=True
                 )
             )
-            bbox_tower.append(nn.GroupNorm(32, in_channels))
+            bbox_tower.append(nn.GroupNorm(32, bb_hidden_dim))
             bbox_tower.append(nn.ReLU())
 
         self.add_module('cls_tower', nn.Sequential(*cls_tower))
         self.add_module('bbox_tower', nn.Sequential(*bbox_tower))
         self.cls_logits = nn.Conv1d(
-            in_channels, num_anchors * num_classes, kernel_size=3, stride=1,
+            bb_hidden_dim, num_anchors * num_classes, kernel_size=3, stride=1,
             padding=1
         )
         self.bbox_pred = nn.Conv1d(
-            in_channels, num_anchors * 2, kernel_size=3, stride=1,
+            bb_hidden_dim, num_anchors * 2, kernel_size=3, stride=1,
             padding=1
         )
 

@@ -2,13 +2,10 @@ import sys
 sys.dont_write_bytecode = True
 import torch
 import torch.nn.parallel
-from Utils.dataset_thumos_infer import VideoDataSet as VideoDataSet_thumos
-from Utils.dataset_activitynet_infer import VideoDataSet as VideoDataSet_anet
-from Utils.dataset_hacs import VideoDataSet as VideoDataSet_hacs
+from Utils.dataset_thumos import VideoDataSet as VideoDataSet_thumos
 from Models.SegTAD import SegTAD
 import pandas as pd
 from joblib import Parallel, delayed
-import pickle
 import sys
 sys.dont_write_bytecode = True
 import torch.nn.parallel
@@ -33,28 +30,11 @@ def Infer_SegTAD(opt):
     model.eval()
 
     proposal_path = os.path.join(opt["output_path"], opt["prop_path"])
-    actionness_path = os.path.join(opt["output_path"], opt["actionness_path"])
-    start_end_path = os.path.join(opt["output_path"], opt["start_end_path"])
-    prop_map_path = os.path.join(opt["output_path"], opt["prop_map_path"])
-
 
     if not os.path.exists(proposal_path):
         os.mkdir(proposal_path)
-    if not os.path.exists(actionness_path):
-        os.mkdir(actionness_path)
-    if not os.path.exists(start_end_path):
-        os.mkdir(start_end_path)
-    if not os.path.exists(prop_map_path):
-        os.mkdir(prop_map_path)
 
-    if opt['dataset'] == 'activitynet':
-        VideoDataSet = VideoDataSet_anet
-    elif opt['dataset'] == 'thumos':
-        VideoDataSet = VideoDataSet_thumos
-    elif opt['dataset'] == 'hacs':
-        VideoDataSet = VideoDataSet_hacs
-
-    test_loader = torch.utils.data.DataLoader(VideoDataSet(opt, subset="validation", mode="inference"),
+    test_loader = torch.utils.data.DataLoader(VideoDataSet_thumos(opt, subset="validation", mode="inference"),
                                               batch_size=opt["batch_size"], shuffle=False,
                                               num_workers=20, pin_memory=True, drop_last=False)
 
@@ -62,8 +42,7 @@ def Infer_SegTAD(opt):
         # for index_list, input_data, gt_actionness, gt_act_map in test_loader:
         for i, (index_list, input_data, num_frms) in enumerate(test_loader):
 
-            infer_batch_selectprop(model, index_list, input_data, test_loader, proposal_path,
-                                   actionness_path, start_end_path, prop_map_path, num_frms)
+            infer_batch_selectprop(model, index_list, input_data, test_loader, proposal_path, num_frms)
 
 
 # Infer one batch of data, for the model with proposal selection
@@ -72,9 +51,6 @@ def infer_batch_selectprop(model,
                            input_data,
                            test_loader,
                            proposal_path,
-                           actionness_path,
-                           start_end_path,
-                           prop_map_path,
                            num_frms):
 
     loc_enc, score_enc, loc_dec, score_dec, loc_st2, pred_action, pred_start, pred_end = model(input_data.cuda(), num_frms)
@@ -101,9 +77,6 @@ def infer_batch_selectprop(model,
             pred_start_v = pred_start_batch[batch_idx],
             pred_end_v = pred_end_batch[batch_idx],
             proposal_path = proposal_path,
-            actionness_path = actionness_path,
-            start_end_path = start_end_path,
-            prop_map_path = prop_map_path,
             num_frms_v = num_frms_batch[batch_idx]
 
         ) for batch_idx, full_idx in enumerate(index_list))

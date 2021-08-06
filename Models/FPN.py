@@ -8,8 +8,8 @@ from .GCNs import Graph_Layer
 class FPN(nn.Module):
     def __init__(self, opt, sync_bn=False, freeze_bn=False):
         super(FPN, self).__init__()
-        self.feat_dim = opt["feat_dim"]
-        self.c_hidden = opt['bb_hidden_dim']  # 512
+        self.input_feat_dim = opt["input_feat_dim"]
+        self.bb_hidden_dim = opt['bb_hidden_dim']  # 512
         self.batch_size = opt["batch_size"]
         self.tem_best_loss = 10000000
         self.num_levels = opt['num_levels'] # 5
@@ -17,26 +17,26 @@ class FPN(nn.Module):
         # self.conv0 = self._make_levels_enc(opt, in_channels=self.feat_dim, out_channels=self.c_hidden)
 
         self.conv0 = nn.Sequential(
-            nn.Conv1d(in_channels=self.feat_dim, out_channels=self.c_hidden,kernel_size=3,stride=2,padding=1,groups=1),
+            nn.Conv1d(in_channels=self.input_feat_dim, out_channels=self.bb_hidden_dim,kernel_size=3,stride=2,padding=1,groups=1),
             nn.ReLU(inplace=True),
         )
 
         self.levels_enc = nn.ModuleList()
         for i in range(self.num_levels):
-            self.levels_enc.append(self._make_levels_enc(opt, in_channels=self.c_hidden, out_channels=self.c_hidden))
+            self.levels_enc.append(self._make_levels_enc(opt, in_channels=self.bb_hidden_dim, out_channels=self.bb_hidden_dim))
 
         self.levels_dec = nn.ModuleList()
         for i in range(self.num_levels - 1):
             output_padding = 1
-            self.levels_dec.append(self._make_levels_dec(in_channels=self.c_hidden, out_channels=self.c_hidden, output_padding = output_padding))
+            self.levels_dec.append(self._make_levels_dec(in_channels=self.bb_hidden_dim, out_channels=self.bb_hidden_dim, output_padding = output_padding))
 
         self.levels1 = nn.ModuleList()
         for i in range(self.num_levels):
-            self.levels1.append(self._make_levels(in_channels=self.c_hidden, out_channels=self.c_hidden))
+            self.levels1.append(self._make_levels(in_channels=self.bb_hidden_dim, out_channels=self.bb_hidden_dim))
 
         self.levels2 = nn.ModuleList()
         for i in range(self.num_levels - 1):
-            self.levels2.append(self._make_levels(in_channels=self.c_hidden, out_channels=self.c_hidden))
+            self.levels2.append(self._make_levels(in_channels=self.bb_hidden_dim, out_channels=self.bb_hidden_dim))
 
 
         self.freeze_bn = freeze_bn

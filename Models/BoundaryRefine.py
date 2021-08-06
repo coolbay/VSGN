@@ -9,20 +9,20 @@ class BoundaryRefine(nn.Module):
         super(BoundaryRefine, self).__init__()
         self.tscale = opt['temporal_scale']
         self.base_stride = 4.
-        num_channels = opt['bb_hidden_dim']
+        bb_hidden_dim = opt['bb_hidden_dim']
 
         self.Loss = LossComputation(opt)
 
         self.start_conv = nn.Sequential(
-            nn.Conv1d(in_channels=num_channels, out_channels=num_channels,kernel_size=3,stride=2,padding=0,groups=1),
+            nn.Conv1d(in_channels=bb_hidden_dim, out_channels=bb_hidden_dim,kernel_size=3,stride=2,padding=0,groups=1),
             nn.ReLU(inplace=True),
-            nn.Conv1d(in_channels=num_channels, out_channels=1, kernel_size=1),
+            nn.Conv1d(in_channels=bb_hidden_dim, out_channels=1, kernel_size=1),
         )
 
         self.end_conv = nn.Sequential(
-            nn.Conv1d(in_channels=num_channels, out_channels=num_channels,kernel_size=3,stride=2,padding=0,groups=1),
+            nn.Conv1d(in_channels=bb_hidden_dim, out_channels=bb_hidden_dim,kernel_size=3,stride=2,padding=0,groups=1),
             nn.ReLU(inplace=True),
-            nn.Conv1d(in_channels=num_channels, out_channels=1, kernel_size=1),
+            nn.Conv1d(in_channels=bb_hidden_dim, out_channels=1, kernel_size=1),
         )
 
     def forward(self, loc_box, feat_frmlvl):

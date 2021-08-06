@@ -15,14 +15,11 @@ class LossComputation(object):
     def __init__(self, opt):
 
         self.tscale = opt["temporal_scale"]
-        self.iou_thr_method = opt['iou_thr_method']
         self.gamma = 2.0
         self.alpha = opt['focal_alpha']
         self.num_classes = 1 if opt['dataset'] == 'activitynet' else opt['decoder_num_classes']
-
-        if self.iou_thr_method == 'fixed':
-            self.iou_thresholds = opt['samp_thr']
-            self.matcher = Matcher(True)
+        self.iou_thresholds = opt['iou_thr']
+        self.matcher = Matcher(True)
 
         self.box_coder = BoxCoder(opt)
 
@@ -159,27 +156,26 @@ class LossComputation(object):
 
         for i in range(len(gt_bbox)):
 
-            if self.iou_thr_method == 'fixed':
-                gt_cur_im = gt_bbox[i, :num_gt[i], :-1] * self.tscale
-                gt_label = gt_bbox[i, :num_gt[i], -1]
-                anchor_cur_im = all_anchors[i]
-                iou_matrix = self._iou_anchors_gts(anchor_cur_im, gt_cur_im)
+            gt_cur_im = gt_bbox[i, :num_gt[i], :-1] * self.tscale
+            gt_label = gt_bbox[i, :num_gt[i], -1]
+            anchor_cur_im = all_anchors[i]
+            iou_matrix = self._iou_anchors_gts(anchor_cur_im, gt_cur_im)
 
-                # Find the corresponding gt for each pred
-                matched_idxs = self.matcher(iou_matrix.transpose(0, 1), self.iou_thresholds[stage])
+            # Find the corresponding gt for each pred
+            matched_idxs = self.matcher(iou_matrix.transpose(0, 1), self.iou_thresholds[stage])
 
-                # Use the label of the corresponding gt as the classification target for the pred
-                cls_labels_cur_im = torch.zeros_like(matched_idxs)
+            # Use the label of the corresponding gt as the classification target for the pred
+            cls_labels_cur_im = torch.zeros_like(matched_idxs)
 
-                cls_labels_cur_im[:] = gt_label[matched_idxs]
+            cls_labels_cur_im[:] = gt_label[matched_idxs]
 
-                cls_labels_cur_im[matched_idxs <0] = 0
+            cls_labels_cur_im[matched_idxs <0] = 0
 
-                # Record the boundary offset as the regression target
-                matched_gts = gt_cur_im[matched_idxs.clamp(min=0)]
-                reg_targets_cur_im = self.box_coder.encode(matched_gts, anchor_cur_im)
+            # Record the boundary offset as the regression target
+            matched_gts = gt_cur_im[matched_idxs.clamp(min=0)]
+            reg_targets_cur_im = self.box_coder.encode(matched_gts, anchor_cur_im)
 
-                cls_targets.append(cls_labels_cur_im.to(dtype=torch.int32))
-                reg_targets.append(reg_targets_cur_im)
+            cls_targets.append(cls_labels_cur_im.to(dtype=torch.int32))
+            reg_targets.append(reg_targets_cur_im)
 
         return cls_targets, reg_targets

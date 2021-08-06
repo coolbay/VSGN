@@ -16,29 +16,15 @@ class SegTAD(nn.Module):
     def __init__(self, opt):
         super(SegTAD, self).__init__()
 
-        self.hidden_dim_1d = opt['decoder_out_dim']
+        self.bb_hidden_dim = opt['bb_hidden_dim']
         self.bs = opt["batch_size"]
-        self.prop_scale = opt["prop_temporal_scale"]
-        self.num_sample = opt["num_sample"]
-        self.roi_method = opt['RoI_method']
-        self.pretrain_model = opt['pretrain_model']
-        self.binary_actionness = opt['binary_actionness']
-        self.stage2 = opt['stage2']
-        self.edge_type = opt['edge_type']
         self.is_train = opt['is_train']
-        self.num_samp_prop = sum(opt['num_samp_prop'])
         self.tem_best_loss = 10000000
         self.hidden_dim_2d = 128
         self.hidden_dim_3d = 512
-        self.PBR_actionness = opt['PBR_actionness']
-        self.feat_dim = opt['feat_dim']
-        # decoder_num_classes = 1 if opt['binary_actionness'] == 'true' else opt['decoder_num_classes']
+        self.input_feat_dim = opt['input_feat_dim']
 
-        # Segmentor part
         self.fpn = FPN(opt)
-        if self.pretrain_model == 'FeatureEnhancer':
-            for param in self.FeatureEnhancer.parameters():
-                param.requires_grad = False
 
         self.head_enc = Head(opt)
         self.head_dec = Head(opt)
@@ -49,44 +35,27 @@ class SegTAD(nn.Module):
 
         self.gen_predictions = ActionGenerator(opt)
 
-        if self.PBR_actionness:
-            self.FBv2_last = nn.Sequential(
-                nn.Conv1d(in_channels=self.hidden_dim_1d, out_channels=self.hidden_dim_1d,kernel_size=3,stride=1,padding=1, groups=1),
-                nn.ReLU(inplace=True),
-                # nn.ConvTranspose1d(in_channels=self.hidden_dim_1d, out_channels=self.hidden_dim_1d,kernel_size=3,stride=2,padding=1, output_padding=1, groups=1),
-                # nn.ReLU(inplace=True),
-            )
-            self.FBV2_input = nn.Sequential(
-                nn.Conv1d(in_channels=self.feat_dim, out_channels=self.hidden_dim_1d,kernel_size=3,stride=4,padding=1, groups=1),
-                nn.ReLU(inplace=True),
-                # nn.Conv1d(in_channels=self.hidden_dim_1d, out_channels=self.hidden_dim_1d,kernel_size=3,stride=1,padding=1, groups=1),
-                # nn.ReLU(inplace=True),
-            )
-            self.FBV2_final = nn.Sequential(
-                nn.Conv1d(in_channels=self.hidden_dim_1d * 2, out_channels=self.hidden_dim_1d,kernel_size=3,stride=1,padding=1, groups=1),
-                nn.ReLU(inplace=True),
-            )
 
         # Generate action/start/end scores
         self.head_actionness = nn.Sequential(
-            nn.Conv1d(self.hidden_dim_1d, self.hidden_dim_1d, kernel_size=3, padding=1, groups=1),
-            # nn.GroupNorm(32, self.hidden_dim_1d),
+            nn.Conv1d(self.bb_hidden_dim, self.bb_hidden_dim, kernel_size=3, padding=1, groups=1),
+            # nn.GroupNorm(32, self.bb_hidden_dim),
             nn.ReLU(inplace=True),
-            nn.Conv1d(self.hidden_dim_1d, 1, kernel_size=1),
+            nn.Conv1d(self.bb_hidden_dim, 1, kernel_size=1),
             nn.Sigmoid()
         )
         self.head_startness = nn.Sequential(
-            nn.Conv1d(self.hidden_dim_1d, self.hidden_dim_1d, kernel_size=3, padding=1, groups=1),
-            # nn.GroupNorm(32, self.hidden_dim_1d),
+            nn.Conv1d(self.bb_hidden_dim, self.bb_hidden_dim, kernel_size=3, padding=1, groups=1),
+            # nn.GroupNorm(32, self.bb_hidden_dim),
             nn.ReLU(inplace=True),
-            nn.Conv1d(self.hidden_dim_1d, 1, kernel_size=1),
+            nn.Conv1d(self.bb_hidden_dim, 1, kernel_size=1),
             nn.Sigmoid()
         )
         self.head_endness = nn.Sequential(
-            nn.Conv1d(self.hidden_dim_1d, self.hidden_dim_1d, kernel_size=3, padding=1, groups=1),
-            # nn.GroupNorm(32, self.hidden_dim_1d),
+            nn.Conv1d(self.bb_hidden_dim, self.bb_hidden_dim, kernel_size=3, padding=1, groups=1),
+            # nn.GroupNorm(32, self.bb_hidden_dim),
             nn.ReLU(inplace=True),
-            nn.Conv1d(self.hidden_dim_1d, 1, kernel_size=1),
+            nn.Conv1d(self.bb_hidden_dim, 1, kernel_size=1),
             nn.Sigmoid()
         )
 
@@ -97,11 +66,6 @@ class SegTAD(nn.Module):
         return loc_enc, score_enc, loc_dec, score_dec
 
 
-    def FBv2(self, feat_last, input):
-        feat1 = self.FBv2_last(feat_last)
-        feat2 = self.FBV2_input(input)
-
-        return self.FBV2_final(torch.cat((feat1, feat2), dim=1))
 
     def forward(self, input, num_frms, gt_bbox = None, num_gt = None):
 
@@ -129,10 +93,7 @@ class SegTAD(nn.Module):
                 self.anchors)
 
         # Stage 2
-        if self.PBR_actionness:
-            feat_frmlvl = self.FBv2(feats_dec[-1], input)
-        else:
-            feat_frmlvl = feats_dec[-1]
+        feat_frmlvl = feats_dec[-1]
 
         # Stage 2: Action/start/end scores
         actionness = self.head_actionness(feat_frmlvl)
