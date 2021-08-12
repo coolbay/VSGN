@@ -36,7 +36,7 @@ def Infer_SegTAD(opt):
 
     test_loader = torch.utils.data.DataLoader(VideoDataSet_thumos(opt, subset="validation", mode="inference"),
                                               batch_size=opt["batch_size"], shuffle=False,
-                                              num_workers=20, pin_memory=True, drop_last=False)
+                                              num_workers=16, pin_memory=True, drop_last=False)
 
     with torch.no_grad():
         for i, (index_list, input_data, num_frms) in enumerate(test_loader):
