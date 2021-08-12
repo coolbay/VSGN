@@ -8,7 +8,7 @@ class BoundaryRefine(nn.Module):
     def __init__(self, opt):
         super(BoundaryRefine, self).__init__()
         self.tscale = opt['temporal_scale']
-        self.base_stride = 4.
+        self.base_stride = opt['base_stride']
         bb_hidden_dim = opt['bb_hidden_dim']
 
         self.Loss = LossComputation(opt)

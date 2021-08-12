@@ -133,41 +133,26 @@ def parse_opt():
         type=int,
         default=4)
 
-    # GN hps
+    # Graph network hyper-parameters
     parser.add_argument(
         '--nfeat_mode',
         default='feat_ctr',
         type=str,
         choices=['feat_ctr', 'dif_ctr', 'feat'])
     parser.add_argument(
-        '--agg_mode',
-        default='max',
-        type=str,
-        choices=['max', 'mean'])
-    parser.add_argument(
-        '--edge_weight',
-        default='true',
-        type=str,
-        choices=['true', 'false'])
-    parser.add_argument(
         '--num_neigh',
         type=int,
         default=10)
     parser.add_argument(
-        '--edge_weight_seq',
+        '--edge_weight',
         default='false',
         type=str,
-        choices=['true', 'false'])  # difference from edge_weight????????
+        choices=['true', 'false'])
     parser.add_argument(
-        '--nfeat_mode_seq',
-        default='feat_ctr',
-        type=str,
-        choices=['feat_ctr', 'feat', 'dif_ctr'])  # difference from nfeat_mode?????????
-    parser.add_argument(
-        '--agg_type_seq',
+        '--agg_type',
         default='max',
         type=str,
-        choices=['max', 'mean'])   # agg_mode???????????
+        choices=['max', 'mean'])
     parser.add_argument(
         '--gcn_insert',
         default='par',
@@ -185,6 +170,11 @@ def parse_opt():
         nargs='+',
         type=float,
         default=[1, 1.5])  # 4, 6; 8, 12; 16, 24; 32, 48; 64, 96
+    parser.add_argument(
+        '--base_stride',
+        type=int,
+        default=4)
+
 
     # VSS hyper-parameters
     parser.add_argument(

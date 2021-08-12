@@ -9,7 +9,7 @@ class AnchorGenerator(nn.Module):
         self.num_levels = opt['num_levels']
         self.tscale = opt["temporal_scale"]
         self.scales = opt['anchor_scale']  #8  # 1
-        self.base_stride = 4
+        self.base_stride = opt['base_stride']
         self.strides = []            # distance between anchors with respect to the sequence
 
         self.base_anchors = []
@@ -42,8 +42,6 @@ class AnchorGenerator(nn.Module):
         return anchors
 
     def _mkanchors(self, ws, ctr):
-
-        # ws = ws[:, None]
         anchors = torch.stack(
             (
                 ctr.unsqueeze(0)- 0.5 * (ws.to(dtype=torch.float32) - 1),

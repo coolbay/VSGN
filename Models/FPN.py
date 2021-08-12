@@ -1,20 +1,18 @@
-import torch
+
 import torch.nn as nn
-from Utils.Sync_batchnorm.batchnorm import SynchronizedBatchNorm1d
+# from Utils.Sync_batchnorm.batchnorm import SynchronizedBatchNorm1d
 from .GCNs import Graph_Layer
 
 
 
 class FPN(nn.Module):
-    def __init__(self, opt, sync_bn=False, freeze_bn=False):
+    def __init__(self, opt, freeze_bn=False):
         super(FPN, self).__init__()
         self.input_feat_dim = opt["input_feat_dim"]
         self.bb_hidden_dim = opt['bb_hidden_dim']  # 512
         self.batch_size = opt["batch_size"]
         self.tem_best_loss = 10000000
         self.num_levels = opt['num_levels'] # 5
-
-        # self.conv0 = self._make_levels_enc(opt, in_channels=self.feat_dim, out_channels=self.c_hidden)
 
         self.conv0 = nn.Sequential(
             nn.Conv1d(in_channels=self.input_feat_dim, out_channels=self.bb_hidden_dim,kernel_size=3,stride=2,padding=1,groups=1),
@@ -39,7 +37,7 @@ class FPN(nn.Module):
             self.levels2.append(self._make_levels(in_channels=self.bb_hidden_dim, out_channels=self.bb_hidden_dim))
 
 
-        self.freeze_bn = freeze_bn
+        # self.freeze_bn = freeze_bn
 
     def _make_levels_enc(self, opt, in_channels, out_channels):
         return  Graph_Layer(opt, in_channels=in_channels, out_channels=out_channels)
@@ -89,41 +87,41 @@ class FPN(nn.Module):
 
         return feats_enc, feats_dec
 
-    def freeze_bn(self):
-        for m in self.modules():
-            if isinstance(m, SynchronizedBatchNorm1d):
-                m.eval()
-            elif isinstance(m, nn.BatchNorm1d):
-                m.eval()
-
-    def get_1x_lr_params(self):
-        modules = [self.backbone]
-        for i in range(len(modules)):
-            for m in modules[i].named_modules():
-                if self.freeze_bn:
-                    if isinstance(m[1], nn.Conv1d):
-                        for p in m[1].parameters():
-                            if p.requires_grad:
-                                yield p
-                else:
-                    if isinstance(m[1], nn.Conv1d) or isinstance(m[1], SynchronizedBatchNorm1d) \
-                            or isinstance(m[1], nn.BatchNorm1d):
-                        for p in m[1].parameters():
-                            if p.requires_grad:
-                                yield p
-
-    def get_10x_lr_params(self):
-        modules = [self.aspp, self.decoder]
-        for i in range(len(modules)):
-            for m in modules[i].named_modules():
-                if self.freeze_bn:
-                    if isinstance(m[1], nn.Conv1d):
-                        for p in m[1].parameters():
-                            if p.requires_grad:
-                                yield p
-                else:
-                    if isinstance(m[1], nn.Conv1d) or isinstance(m[1], SynchronizedBatchNorm1d) \
-                            or isinstance(m[1], nn.BatchNorm1d):
-                        for p in m[1].parameters():
-                            if p.requires_grad:
-                                yield p
+    # def freeze_bn(self):
+    #     for m in self.modules():
+    #         if isinstance(m, SynchronizedBatchNorm1d):
+    #             m.eval()
+    #         elif isinstance(m, nn.BatchNorm1d):
+    #             m.eval()
+    # 
+    # def get_1x_lr_params(self):
+    #     modules = [self.backbone]
+    #     for i in range(len(modules)):
+    #         for m in modules[i].named_modules():
+    #             if self.freeze_bn:
+    #                 if isinstance(m[1], nn.Conv1d):
+    #                     for p in m[1].parameters():
+    #                         if p.requires_grad:
+    #                             yield p
+    #             else:
+    #                 if isinstance(m[1], nn.Conv1d) or isinstance(m[1], SynchronizedBatchNorm1d) \
+    #                         or isinstance(m[1], nn.BatchNorm1d):
+    #                     for p in m[1].parameters():
+    #                         if p.requires_grad:
+    #                             yield p
+    # 
+    # def get_10x_lr_params(self):
+    #     modules = [self.aspp, self.decoder]
+    #     for i in range(len(modules)):
+    #         for m in modules[i].named_modules():
+    #             if self.freeze_bn:
+    #                 if isinstance(m[1], nn.Conv1d):
+    #                     for p in m[1].parameters():
+    #                         if p.requires_grad:
+    #                             yield p
+    #             else:
+    #                 if isinstance(m[1], nn.Conv1d) or isinstance(m[1], SynchronizedBatchNorm1d) \
+    #                         or isinstance(m[1], nn.BatchNorm1d):
+    #                     for p in m[1].parameters():
+    #                         if p.requires_grad:
+    #                             yield p

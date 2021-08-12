@@ -1,8 +1,6 @@
 
 import torch
-import torch.nn as nn
-import math
-from .BoxCoder import  BoxCoder
+from .BoxCoder import BoxCoder
 import torch.nn.functional as F
 
 class ActionGenerator(object):
@@ -11,10 +9,9 @@ class ActionGenerator(object):
 
         self.pre_nms_thresh = 0.00
         self.pre_nms_top_n = 10000
-        self.num_classes = 1 if opt['dataset'] == 'activitynet' else opt['decoder_num_classes']
+        self.num_classes = opt['decoder_num_classes']
 
         self.box_coder = BoxCoder(opt)
-
 
     def __call__(self, cls_pred_enc, reg_pred_enc, cls_pred_dec, reg_pred_dec, anchors):
         bs = cls_pred_enc[0].shape[0]

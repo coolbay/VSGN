@@ -97,12 +97,12 @@ class SegTAD(nn.Module):
 
         # Stage 2: Action/start/end scores
         actionness = self.head_actionness(feat_frmlvl)
-        start = self.head_startness(feat_frmlvl).squeeze(1)
-        end = self.head_endness(feat_frmlvl).squeeze(1)
+        start = self.head_startness(feat_frmlvl)
+        end = self.head_endness(feat_frmlvl)
 
         actionness = F.interpolate(actionness, size=input.size()[2:], mode='linear', align_corners=True)
-        start = F.interpolate(start[:, None, :], size=input.size()[2:], mode='linear', align_corners=True).squeeze(1)
-        end = F.interpolate(end[:, None, :], size=input.size()[2:], mode='linear', align_corners=True).squeeze(1)
+        start = F.interpolate(start, size=input.size()[2:], mode='linear', align_corners=True).squeeze(1)
+        end = F.interpolate(end, size=input.size()[2:], mode='linear', align_corners=True).squeeze(1)
 
         # Stage 2: Boundary refinement
         start_offsets, end_offsets  = self.bd_refine(loc_dec, feat_frmlvl)

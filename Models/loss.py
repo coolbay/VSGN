@@ -2,11 +2,7 @@
 import torch
 import torch.nn.functional as F
 from .matcher import Matcher
-import math
-import sys
-sys.path.append("..")
 
-from Utils.FocalLoss.sigmoid_focal_loss import SigmoidFocalLoss
 from .BoxCoder import  BoxCoder
 
 
@@ -17,7 +13,7 @@ class LossComputation(object):
         self.tscale = opt["temporal_scale"]
         self.gamma = 2.0
         self.alpha = opt['focal_alpha']
-        self.num_classes = 1 if opt['dataset'] == 'activitynet' else opt['decoder_num_classes']
+        self.num_classes = opt['decoder_num_classes']
         self.iou_thresholds = opt['iou_thr']
         self.matcher = Matcher(True)
 
@@ -35,7 +31,6 @@ class LossComputation(object):
         int_xmax = torch.min(anchors_max[:, None], box_max)
         inter_len = torch.clamp(int_xmax - int_xmin, min=0)
         union_len = torch.clamp(len_anchors[:, None] + box_max - box_min - inter_len, min=0)
-        # print inter_len,union_len
         jaccard = inter_len / union_len
         return jaccard
 
@@ -44,7 +39,7 @@ class LossComputation(object):
 
         # Loss for Stage 0 --- encoder
         anchors = [anchor.unsqueeze(0).repeat(bs, 1, 1).to(device=gt_bbox.device) for anchor in anchors]
-        cls_loss0, reg_loss0 = self._loss_one_stage(cls_pred_enc, reg_pred_enc, gt_bbox, num_gt, anchors, stage=0)
+        # cls_loss0, reg_loss0 = self._loss_one_stage(cls_pred_enc, reg_pred_enc, gt_bbox, num_gt, anchors, stage=0)
 
         # Loss for Stage 1 --- decoder
         anchors_update = []
@@ -64,10 +59,7 @@ class LossComputation(object):
         _, reg_loss1 = self._loss_one_stage(cls_pred_dec, reg_pred_dec, gt_bbox, num_gt, anchors, stage=1)
         cls_loss1, _ = self._loss_one_stage(cls_pred_dec, reg_pred_dec, gt_bbox, num_gt, loc_dec, stage=1)
 
-
         losses = {
-            "loss_cls_enc": cls_loss0,
-            "loss_reg_enc": reg_loss0,
             "loss_cls_dec": cls_loss1,
             "loss_reg_dec": reg_loss1,
         }
@@ -146,8 +138,7 @@ class LossComputation(object):
             assert losses.numel() != 0
             return losses.sum()
 
-    # TODO: 1. low threshold
-    # TODO: 2. Centerness: positive center should be inside the gt action
+
     def prepare_targets(self, gt_bbox, num_gt, anchors, stage=0):
 
         cls_targets = []
