@@ -82,9 +82,9 @@ class NeighConv(nn.Module):
             feat_neigh_out = feat_neigh_out.mean(dim=1, keepdim=False)
         return feat_neigh_out
 
-class Graph_Layer(nn.Module):
+class xGN(nn.Module):
     def __init__(self,  opt, in_channels, out_channels, bias=True):
-        super(Graph_Layer, self).__init__()
+        super(xGN, self).__init__()
         self.gcn_insert = opt['gcn_insert']
         self.n_neigh = opt['num_neigh']
         self.opt = opt

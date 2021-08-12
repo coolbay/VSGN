@@ -6,7 +6,7 @@ from .matcher import Matcher
 from .BoxCoder import  BoxCoder
 
 
-class LossComputation(object):
+class Loss_loc_cls(object):
 
     def __init__(self, opt):
 
@@ -34,19 +34,9 @@ class LossComputation(object):
         jaccard = inter_len / union_len
         return jaccard
 
-    def __call__(self, cls_pred_enc, reg_pred_enc, cls_pred_dec, reg_pred_dec, anchors, gt_bbox, num_gt):
-        bs = cls_pred_enc[0].shape[0]
-
-        # Loss for Stage 0 --- encoder
+    def __call__(self, cls_pred_dec, reg_pred_dec, anchors, gt_bbox, num_gt):
+        bs = cls_pred_dec[0].shape[0]
         anchors = [anchor.unsqueeze(0).repeat(bs, 1, 1).to(device=gt_bbox.device) for anchor in anchors]
-        # cls_loss0, reg_loss0 = self._loss_one_stage(cls_pred_enc, reg_pred_enc, gt_bbox, num_gt, anchors, stage=0)
-
-        # Loss for Stage 1 --- decoder
-        anchors_update = []
-        for pred, anchor in zip(reg_pred_enc, anchors):
-            pred = pred.permute(0, 2, 1).reshape(-1, 2)
-            anchor = anchor.view(-1, 2)
-            anchors_update.append(self.box_coder.decode(pred, anchor).view(bs, -1,2))
         cls_pred_dec = [cls_pred_dec[i] for i in range(len(cls_pred_dec)-1, -1, -1)]
         reg_pred_dec = [reg_pred_dec[i] for i in range(len(reg_pred_dec)-1, -1, -1)]
 
@@ -170,3 +160,32 @@ class LossComputation(object):
             reg_targets.append(reg_targets_cur_im)
 
         return cls_targets, reg_targets
+
+
+def bi_loss(prediction, groundtruth, reduction='mean'):
+    gt = groundtruth.view(-1)
+    pred = prediction.contiguous().view(-1)
+
+    pmask = (gt>0.5).float()
+    num_positive = torch.sum(pmask)
+    num_entries = len(gt)
+    ratio=num_entries/num_positive
+
+    coef_0=0.5*(ratio)/(ratio-1)
+    coef_1=coef_0*(ratio-1)
+    loss = coef_1*pmask*torch.log(pred+0.00001) + coef_0*(1.0-pmask)*torch.log(1.0-pred+0.00001)
+
+    if reduction == 'mean':
+        loss = -torch.mean(loss)
+    elif reduction == 'none':
+        loss = -torch.mean(loss.view(groundtruth.shape), dim=1)
+    return loss
+
+
+
+def get_loss_supplement(pred_action, gt_action, pred_start, gt_start, pred_end, gt_end):
+    loss_action = bi_loss(pred_action, gt_action)
+    loss_start = bi_loss(pred_start, gt_start)
+    loss_end = bi_loss(pred_end, gt_end)
+
+    return loss_action, loss_start, loss_end

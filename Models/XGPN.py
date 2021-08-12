@@ -1,13 +1,13 @@
 
 import torch.nn as nn
 # from Utils.Sync_batchnorm.batchnorm import SynchronizedBatchNorm1d
-from .GCNs import Graph_Layer
+from .GCNs import xGN
 
 
 
-class FPN(nn.Module):
-    def __init__(self, opt, freeze_bn=False):
-        super(FPN, self).__init__()
+class XGPN(nn.Module):
+    def __init__(self, opt):
+        super(XGPN, self).__init__()
         self.input_feat_dim = opt["input_feat_dim"]
         self.bb_hidden_dim = opt['bb_hidden_dim']  # 512
         self.batch_size = opt["batch_size"]
@@ -40,7 +40,7 @@ class FPN(nn.Module):
         # self.freeze_bn = freeze_bn
 
     def _make_levels_enc(self, opt, in_channels, out_channels):
-        return  Graph_Layer(opt, in_channels=in_channels, out_channels=out_channels)
+        return xGN(opt, in_channels=in_channels, out_channels=out_channels)
 
     def _make_levels_dec(self, in_channels, out_channels, output_padding = 1):
 

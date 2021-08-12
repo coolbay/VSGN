@@ -8,37 +8,16 @@ import numpy as np
 from tensorboardX import SummaryWriter
 import Utils.opts as opts
 from Utils.dataset_thumos import VideoDataSet as VideoDataSet_thumos
-from Models.SegTAD import SegTAD
-from Utils.loss_function import boundary_loss_function, bi_loss
+from Models.VSGN import VSGN
 import datetime
 from collections import defaultdict
 
 torch.manual_seed(21)
 
-class BatchCollator(object):
-    """
-    From a list of samples from the dataset,
-    returns the batched images and targets.
-    This should be passed to the DataLoader
-    """
-
-    def __init__(self, size_divisible=0):
-        self.size_divisible = size_divisible
-
-    def __call__(self, batch):
-        transposed_batch = list(zip(*batch))
-        video_data = torch.stack(transposed_batch[0])
-        match_score_action = torch.stack(transposed_batch[1])
-        match_score_start = torch.stack(transposed_batch[2])
-        match_score_end = torch.stack(transposed_batch[3])
-        gt_iou_map = torch.stack(transposed_batch[4])
-        gt_bbox = transposed_batch[5]
-        return video_data, match_score_action, match_score_start, match_score_end, gt_iou_map, gt_bbox
-
-def Train_SegTAD(opt):
+def Train_VSGN(opt):
     path_appendix = '_'.join(string for string in opt['checkpoint_path'].split('_')[1:])
     writer = SummaryWriter(logdir='runs/' + path_appendix)
-    model = SegTAD(opt)
+    model = VSGN(opt)
     device = "cuda"
     model = torch.nn.DataParallel(model)
     model.to(device)
@@ -89,22 +68,18 @@ def train_SegTAD_epoch(data_loader, model, optimizer, epoch, writer, opt, is_tra
     epoch_losses = defaultdict(float)
     for n_iter, (input_data, gt_action, gt_start, gt_end, gt_bbox, num_gt, num_frms) in enumerate(data_loader):
         with torch.set_grad_enabled(is_train):
-            losses, pred_action, pred_start, pred_end = model(input_data, num_frms, gt_bbox, num_gt)
+            losses, pred_action, pred_start, pred_end = model(input_data, num_frms, gt_action, gt_start, gt_end,  gt_bbox, num_gt)
 
-            # Loss2a: actionness
-            cost_actionness = bi_loss(pred_action[:,0,:], gt_action.cuda())
-
-            # Loss2b: start/end loss
-            cost_boundary = boundary_loss_function(pred_start.cuda(), pred_end, gt_start.cuda(), gt_end.cuda())
 
         # Overall loss
-        loss_stage1_cls = torch.mean(losses['loss_cls_dec'])
-        loss_stage1_reg = torch.mean(losses['loss_reg_dec'])
-        loss_stage2_act = cost_actionness
-        loss_stage2_bd = cost_boundary
-        loss_stage2_reg = torch.mean(losses['loss_reg_st2'])
+        loss_cls_dec = torch.mean(losses['loss_cls_dec'])
+        loss_reg_dec = torch.mean(losses['loss_reg_dec'])
+        loss_action = torch.mean(losses['loss_action'])
+        loss_start = torch.mean(losses['loss_start'])
+        loss_end = torch.mean(losses['loss_end'])
+        loss_bd_adjust = torch.mean(losses['loss_bd_adjust'])
 
-        loss = loss_stage1_cls + loss_stage1_reg + 0.2*loss_stage2_act + 0.2*loss_stage2_bd + loss_stage2_reg
+        loss = loss_cls_dec + loss_reg_dec + 0.2*loss_action + 0.2*loss_start +0.2*loss_end + loss_bd_adjust
 
         if is_train:
             optimizer.zero_grad()
@@ -112,11 +87,12 @@ def train_SegTAD_epoch(data_loader, model, optimizer, epoch, writer, opt, is_tra
             optimizer.step()
 
         epoch_losses['loss'] += loss.cpu().detach().numpy()
-        epoch_losses['loss_stage1_cls'] += loss_stage1_cls.cpu().detach().numpy()
-        epoch_losses['loss_stage1_reg'] += loss_stage1_reg.cpu().detach().numpy()
-        epoch_losses['loss_stage2_act'] += loss_stage2_act.cpu().detach().numpy()
-        epoch_losses['loss_stage2_bd'] += loss_stage2_bd.cpu().detach().numpy()
-        epoch_losses['loss_stage2_reg'] += loss_stage2_reg.cpu().detach().numpy()
+        epoch_losses['loss_cls_dec'] += loss_cls_dec.cpu().detach().numpy()
+        epoch_losses['loss_reg_dec'] += loss_reg_dec.cpu().detach().numpy()
+        epoch_losses['loss_action'] += loss_action.cpu().detach().numpy()
+        epoch_losses['loss_start'] += loss_start.cpu().detach().numpy()
+        epoch_losses['loss_end'] += loss_end.cpu().detach().numpy()
+        epoch_losses['loss_bd_adjust'] += loss_bd_adjust.cpu().detach().numpy()
 
     for k, v in epoch_losses.items():
         epoch_losses[k] = v / (n_iter + 1)
@@ -153,7 +129,7 @@ if __name__ == '__main__':
     print("---------------------------------------------------------------------------------------------")
     print("Training starts!")
     print("---------------------------------------------------------------------------------------------")
-    Train_SegTAD(opt)
+    Train_VSGN(opt)
     print("Training finishes!")
 
     print(datetime.datetime.now())

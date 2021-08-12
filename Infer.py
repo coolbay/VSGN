@@ -3,7 +3,7 @@ sys.dont_write_bytecode = True
 import torch
 import torch.nn.parallel
 from Utils.dataset_thumos import VideoDataSet as VideoDataSet_thumos
-from Models.SegTAD import SegTAD
+from Models.VSGN import VSGN
 import pandas as pd
 from joblib import Parallel, delayed
 import sys
@@ -20,7 +20,7 @@ torch.manual_seed(21)
 
 # Infer all data
 def Infer_SegTAD(opt):
-    model = SegTAD(opt)
+    model = VSGN(opt)
     model = torch.nn.DataParallel(model).cuda()
     if not os.path.exists(opt["checkpoint_path"] + "/best.pth.tar"):
         print("There is no checkpoint. Please train first!!!")
@@ -39,7 +39,6 @@ def Infer_SegTAD(opt):
                                               num_workers=20, pin_memory=True, drop_last=False)
 
     with torch.no_grad():
-        # for index_list, input_data, gt_actionness, gt_act_map in test_loader:
         for i, (index_list, input_data, num_frms) in enumerate(test_loader):
 
             infer_batch_selectprop(model, index_list, input_data, test_loader, proposal_path, num_frms)
@@ -53,12 +52,10 @@ def infer_batch_selectprop(model,
                            proposal_path,
                            num_frms):
 
-    loc_enc, score_enc, loc_dec, score_dec, loc_st2, pred_action, pred_start, pred_end = model(input_data.cuda(), num_frms)
-
+    loc_dec, score_dec, loc_adjusted, pred_action, pred_start, pred_end = model(input_data.cuda(), num_frms)
 
     # Move variables to output to CPU
-    loc_dec_batch = loc_st2.detach().cpu().numpy()
-    score_enc_batch = score_enc.detach().cpu().numpy()
+    loc_adjusted_batch = loc_adjusted.detach().cpu().numpy()
     score_dec_batch = score_dec.detach().cpu().numpy()
     pred_action_batch = pred_action.detach().cpu().numpy()
     pred_start_batch = pred_start.detach().cpu().numpy()
@@ -70,9 +67,8 @@ def infer_batch_selectprop(model,
         delayed(infer_v_asis)(
             opt,
             video=list(test_loader.dataset.video_windows)[full_idx],
-            score_enc_v = score_enc_batch[batch_idx],
             score_dec_v = score_dec_batch[batch_idx],
-            loc_dec_v = loc_dec_batch[batch_idx],
+            loc_adjusted_v = loc_adjusted_batch[batch_idx],
             pred_action_v = pred_action_batch[batch_idx],
             pred_start_v = pred_start_batch[batch_idx],
             pred_end_v = pred_end_batch[batch_idx],
@@ -82,24 +78,18 @@ def infer_batch_selectprop(model,
         ) for batch_idx, full_idx in enumerate(index_list))
 
 
-    # # test
     # # For debug: one process
     # for batch_idx, full_idx in enumerate(index_list):
-    #
     #     infer_v_asis(
     #             opt,
-    #         video=list(test_loader.dataset.video_windows)[full_idx],
-    #         score_enc_v = score_enc_batch[batch_idx],
-    #         score_dec_v = score_dec_batch[batch_idx],
-    #         loc_dec_v = loc_dec_batch[batch_idx],
-    #         pred_action_v = pred_action_batch[batch_idx],
-    #         pred_start_v = pred_start_batch[batch_idx],
-    #         pred_end_v = pred_end_batch[batch_idx],
-    #         proposal_path = proposal_path,
-    #         actionness_path = actionness_path,
-    #         start_end_path = start_end_path,
-    #         prop_map_path = prop_map_path,
-    #         num_frms_v = num_frms_batch[batch_idx]
+    #             video = list(test_loader.dataset.video_windows)[full_idx],
+    #             score_dec_v = score_dec_batch[batch_idx],
+    #             loc_adjusted_v = loc_adjusted_batch[batch_idx],
+    #             pred_action_v = pred_action_batch[batch_idx],
+    #             pred_start_v = pred_start_batch[batch_idx],
+    #             pred_end_v = pred_end_batch[batch_idx],
+    #             proposal_path = proposal_path,
+    #             num_frms_v = num_frms_batch[batch_idx]
     #     )
 
 
@@ -107,7 +97,7 @@ def infer_batch_selectprop(model,
 def infer_v_asis(*args, **kwargs):
 
     tscale = args[0]["temporal_scale"]
-    loc_pred_v = kwargs['loc_dec_v']
+    loc_pred_v = kwargs['loc_adjusted_v']
     score_dec_v = kwargs['score_dec_v']
     pred_start_v = kwargs['pred_start_v']
     pred_end_v = kwargs['pred_end_v']
@@ -180,7 +170,8 @@ def nms(dets, thresh=0.4):
         xx1 = np.maximum(x1[i], x1[order[1:]])
         xx2 = np.minimum(x2[i], x2[order[1:]])
         inter = np.maximum(0.0, xx2 - xx1)
-        ovr = inter / (lengths[i] + lengths[order[1:]] - inter)
+
+        ovr = inter / (lengths[i] + lengths[order[1:]] - inter + 0.0000001)
         inds = np.where(ovr <= thresh)[0]
         order = order[inds + 1]
     return keep

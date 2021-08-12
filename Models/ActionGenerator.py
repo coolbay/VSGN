@@ -3,9 +3,9 @@ import torch
 from .BoxCoder import BoxCoder
 import torch.nn.functional as F
 
-class ActionGenerator(object):
+class Pred_loc_cls(object):
     def __init__(self, opt):
-        super(ActionGenerator, self).__init__()
+        super(Pred_loc_cls, self).__init__()
 
         self.pre_nms_thresh = 0.00
         self.pre_nms_top_n = 10000
@@ -13,16 +13,11 @@ class ActionGenerator(object):
 
         self.box_coder = BoxCoder(opt)
 
-    def __call__(self, cls_pred_enc, reg_pred_enc, cls_pred_dec, reg_pred_dec, anchors):
-        bs = cls_pred_enc[0].shape[0]
-
-        # First stage: encoder
-        anchors = [anchor.unsqueeze(0).repeat(bs, 1, 1).to(device=cls_pred_enc[0].device) for anchor in anchors]
+    def __call__(self, cls_pred_dec, reg_pred_dec, anchors):
+        bs = cls_pred_dec[0].shape[0]
+        anchors = [anchor.unsqueeze(0).repeat(bs, 1, 1).to(device=cls_pred_dec[0].device) for anchor in anchors]
         all_anchors = torch.cat(anchors, dim=1)          # bs, levels*positions*scales, left-right
-        loc_enc, score_enc = self._call_one_stage(cls_pred_enc, reg_pred_enc, all_anchors)
 
-
-        # Second stage: decoder
         cls_pred_dec = [cls_pred_dec[i] for i in range(len(cls_pred_dec)-1, -1, -1)]
         reg_pred_dec = [reg_pred_dec[i] for i in range(len(reg_pred_dec)-1, -1, -1)]
 
@@ -30,8 +25,7 @@ class ActionGenerator(object):
         _, score_dec = self._call_one_stage(cls_pred_dec, reg_pred_dec, torch.stack(loc_dec, dim=0))
 
 
-        return torch.stack(score_enc, dim=0), torch.stack(loc_enc, dim=0), \
-               torch.stack(score_dec, dim=0), torch.stack(loc_dec, dim=0)
+        return torch.stack(score_dec, dim=0), torch.stack(loc_dec, dim=0)
 
     def _call_one_stage(self, cls_pred, reg_pred, all_anchors):
 

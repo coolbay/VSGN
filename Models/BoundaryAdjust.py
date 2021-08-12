@@ -1,17 +1,17 @@
 import torch
 import torch.nn as nn
-from .loss import LossComputation
+from .Loss import Loss_loc_cls
 
 
-class BoundaryRefine(nn.Module):
+class BoundaryAdjust(nn.Module):
 
     def __init__(self, opt):
-        super(BoundaryRefine, self).__init__()
+        super(BoundaryAdjust, self).__init__()
         self.tscale = opt['temporal_scale']
         self.base_stride = opt['base_stride']
         bb_hidden_dim = opt['bb_hidden_dim']
 
-        self.Loss = LossComputation(opt)
+        self.Loss = Loss_loc_cls(opt)
 
         self.start_conv = nn.Sequential(
             nn.Conv1d(in_channels=bb_hidden_dim, out_channels=bb_hidden_dim,kernel_size=3,stride=2,padding=0,groups=1),
