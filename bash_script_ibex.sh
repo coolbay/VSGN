@@ -25,7 +25,6 @@ then
     FEAT_NAME='HACS/'
 fi
 echo $SLURM_ARRAY_TASK_ID
-IOU_BOUND='0.45 0.95'
 TRAIN_LR=$(sed -n "$((SLURM_ARRAY_TASK_ID))"p hp.txt)
 N_NEIGH=10
 
@@ -67,7 +66,7 @@ then
         mkdir -p ${CKP_PATH}
     fi
     echo Logging output to "$LOG_TRAIN"
-    python Train.py  --iou_thr_bound ${IOU_BOUND} \
+    python Train.py
         --feature_path ${DATA_PATH} \
         --checkpoint_path ${CKP_PATH}  \
         --is_train true   \

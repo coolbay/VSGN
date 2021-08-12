@@ -67,7 +67,7 @@ def parse_opt():
     parser.add_argument(
         '--batch_size',
         type=int,
-        default=128)
+        default=32)
     parser.add_argument(
         '--train_lr',
         type=float,
@@ -142,7 +142,7 @@ def parse_opt():
     parser.add_argument(
         '--num_neigh',
         type=int,
-        default=10)
+        default=12)
     parser.add_argument(
         '--edge_weight',
         default='false',
