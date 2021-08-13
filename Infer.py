@@ -136,8 +136,6 @@ def infer_v_asis(*args, **kwargs):
         locations = loc_pred_v[inds,:]
         labels = np.array([j]*locations.shape[0])
         cls_dets = np.concatenate((locations, scores[:, None], labels[:, None]), axis=1)
-        # order = np.argsort(-scores, 0)
-        # cls_dets = cls_dets[order]
         keep = nms(cls_dets, opt['nms_thr'])
         if ( len(keep)>0 ):
             cls_dets = cls_dets[keep]
@@ -188,7 +186,6 @@ if __name__ == '__main__':
     if not os.path.exists(opt["output_path"]):
         os.makedirs(opt["output_path"])
 
-    # 1. Run inference
     print(datetime.datetime.now())
     print("---------------------------------------------------------------------------------------------")
     print("1. Inference starts!")

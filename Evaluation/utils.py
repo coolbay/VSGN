@@ -47,7 +47,7 @@ def segment_iou(target_segment, candidate_segments):
       + (target_segment[1] - target_segment[0]) - segments_intersection
     # Compute overlap as the ratio of the intersection
     # over union of two segments.
-    tIoU = segments_intersection.astype(float) / segments_union
+    tIoU = segments_intersection.astype(float) / (segments_union + 0.0000001)
     return tIoU
 
 def wrapper_segment_iou(target_segments, candidate_segments):
