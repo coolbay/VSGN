@@ -79,7 +79,7 @@ def parse_opt():
     parser.add_argument(
         '--num_epoch',
         type=int,
-        default=5)  # org 30
+        default=10)
     parser.add_argument(
         '--step_size',
         type=int,

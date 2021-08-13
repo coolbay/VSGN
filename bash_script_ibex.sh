@@ -1,13 +1,13 @@
 #!/bin/bash
 
 #SBATCH --job-name gcn_split
-#SBATCH --array=1-9
+#SBATCH --array=1-6
 #SBATCH --time=0-04:00:00
 #SBATCH -o gpu.%A.out
 #SBATCH -e gpu.%A.err
 
-#SBATCH --gres=gpu:2
-#SBATCH --cpus=16
+#SBATCH --gres=gpu:gtx1080ti:4
+#SBATCH --cpus-per-gpu=4
 #SBATCH --mem=50GB
 
 set -ex
@@ -26,14 +26,13 @@ then
 fi
 echo $SLURM_ARRAY_TASK_ID
 TRAIN_LR=$(sed -n "$((SLURM_ARRAY_TASK_ID))"p hp.txt)
-N_NEIGH=10
 
-TRAIN_FLAG="${DATASET}_${DATE_TIME}_lr${TRAIN_LR}_neigh${N_NEIGH}"
+TRAIN_FLAG="${DATASET}_${DATE_TIME}_lr${TRAIN_LR}"
 CKP_PATH=./checkpoint_${TRAIN_FLAG}
 OUTPUT_PATH=./output_${TRAIN_FLAG}
 LOG_TRAIN="${CKP_PATH}/log_train.txt"
 LOG_TEST="${OUTPUT_PATH}/log_test.txt"
-OUT_PMAP='true'
+OUT_PMAP='false'
 
 # Choose machine
 if  [ $1 == 'kw60749' ]
@@ -66,14 +65,14 @@ then
         mkdir -p ${CKP_PATH}
     fi
     echo Logging output to "$LOG_TRAIN"
-    python Train.py
+    python Train.py \
         --feature_path ${DATA_PATH} \
         --checkpoint_path ${CKP_PATH}  \
         --is_train true   \
         --dataset ${DATASET}   \
         --batch_size  32  \
-	    --train_lr ${TRAIN_LR}  \
-	    --num_neigh ${N_NEIGH} | tee -a "$LOG_TRAIN"
+        --train_lr ${TRAIN_LR}  \
+        --num_neigh ${N_NEIGH} | tee -a "$LOG_TRAIN"
 fi
 
 if [[ $2 =~ .*'infer'.* ]]
@@ -93,7 +92,7 @@ then
         --is_train false  \
         --dataset ${DATASET}   \
         --batch_size  32  \
-	    --num_neigh ${N_NEIGH}  | tee -a "$LOG_TEST"
+	      --num_neigh ${N_NEIGH}  | tee -a "$LOG_TEST"
 fi
 
 if [[ $2 =~ .*'eval'.* ]]
