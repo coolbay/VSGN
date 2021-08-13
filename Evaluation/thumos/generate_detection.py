@@ -1,12 +1,9 @@
-import sys
+
 import numpy as np
 import pandas as pd
 import json
 import os
 from joblib import Parallel, delayed
-from .eval_detection import ANETdetection
-
-from Utils import opts_thumos
 
 thumos_class = {
     7 : 'BaseballPitch',

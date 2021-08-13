@@ -15,7 +15,7 @@ if __name__ == '__main__':
         print('No predictions! Please run inference first!')
 
     print("---------------------------------------------------------------------------------------------")
-    print("3. Detection evaluation starts!")
+    print("Detection evaluation starts!")
     print("---------------------------------------------------------------------------------------------")
 
     print("a. Generate detections!")
