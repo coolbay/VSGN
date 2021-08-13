@@ -10,24 +10,7 @@ This repo holds the codes of paper: "[Video Self-Stitching Graph Network for Tem
 ![VSGN Overview](./VSGN_overview.png)
 Temporal action localization (TAL) in videos is a challenging task, especially due to the large variation in action temporal scales. Short actions usually occupy the major proportion in the data, but have the lowest performance with all current methods. In this paper, we confront the challenge of short actions and propose a  multi-level cross-scale solution dubbed as video self-stitching graph network (VSGN). We have two key components in VSGN: video self-stitching (VSS) and cross-scale graph pyramid network (xGPN). In VSS, we focus on a short period of a video and magnify it along the temporal dimension to obtain a larger scale.  We stitch the original clip and its magnified counterpart in one input sequence to take advantage of the complementary properties of both scales. The xGPN component further exploits the cross-scale correlations by a pyramid of cross-scale graph networks, each containing a hybrid  module to aggregate features from across scales as well as within the same scale. Our VSGN not only enhances the feature representations, but also generates more positive anchors for short actions and more short training samples. Experiments demonstrate that VSGN obviously improves the localization performance of short actions as well as achieving the state-of-the-art overall performance on THUMOS-14 and  ActivityNet-v1.3.
 
-## Environment Installation
-Create a conda environment and install required packages from scratch following the steps below
-```
-    conda create -n pytorch110 python=3.7 
-    conda activate pytorch110   
-    conda install pytorch=1.1.0 torchvision cudatoolkit=10.0.130 -c pytorch   
-    conda install -c anaconda pandas    
-    conda install -c anaconda h5py  
-    conda install -c anaconda scipy 
-    conda install -c conda-forge tensorboardx   
-    conda install -c anaconda joblib    
-    conda install -c conda-forge matplotlib 
-    conda install -c conda-forge urllib3
-```
-OR you can create a conda environment from our `env.yml` file using the following command
-```
-    conda env create -f env.yml
-```
+
 
 ## Project Architecture
 An overview of the project architecture in repo is shown below.
@@ -48,6 +31,41 @@ An overview of the project architecture in repo is shown below.
 - Network model is defined in [`Model/VSGN.py`](./Models/VSGN.py), with detailed implementation of of different modules in different files in [`Models`](./Models).
 - Losses are defined in [`Models/Loss.py`](./Models/Loss.py)
 - We use pre-extracted video features. THUMOS14 features can be found [here](https://drive.google.com/drive/folders/1-19PgCRTTNfy2RWGErvUUlT0_3J-qEb8).
+
+
+## Pre-trained Models and Performance
+
+### THUMOS14
+
+The results are a bit different from the ones reported in the paper due to randomness.
+
+| Method | Model | 0.3 | 0.4 | 0.5 | 0.6 | 0.7 | Average | Short |
+|---------|--------|-----|--------|-----|-----|-------|--------|--------|
+|Baseline |
+| VSGN |
+
+
+
+
+
+## Environment Installation
+Create a conda environment and install required packages from scratch following the steps below
+```
+    conda create -n pytorch110 python=3.7 
+    conda activate pytorch110   
+    conda install pytorch=1.1.0 torchvision cudatoolkit=10.0.130 -c pytorch   
+    conda install -c anaconda pandas    
+    conda install -c anaconda h5py  
+    conda install -c anaconda scipy 
+    conda install -c conda-forge tensorboardx   
+    conda install -c anaconda joblib    
+    conda install -c conda-forge matplotlib 
+    conda install -c conda-forge urllib3
+```
+OR you can create a conda environment from our `env.yml` file using the following command
+```
+    conda env create -f env.yml
+```
 
 
 ## Code and Data Preparation

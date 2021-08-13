@@ -22,7 +22,7 @@ def knn(x, num_frms, opt, y=None, k=10):
 
     for i in range(bs):
         if num_frms[i] <= (opt['short_ratio'] * opt['temporal_scale']):
-            thr = (num_frms[i] + opt['stitch_gap']) / ratio
+            thr = int((num_frms[i] + opt['stitch_gap']) / ratio)
             dif[i, thr:, thr:] = max_dif + 1
 
             loc1 = torch.tensor(range(length), dtype=torch.long, device=x.device)[:, None].repeat(1, half1_k).view(-1)
