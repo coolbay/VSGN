@@ -2,8 +2,8 @@ import logging
 import numpy as np
 import pandas as pd
 
-from utils import interpolated_prec_rec
-from utils import segment_iou
+from ..utils import interpolated_prec_rec
+from ..utils import segment_iou
 
 from joblib import Parallel, delayed
 
@@ -44,7 +44,6 @@ class EvalActionDetection(object):
             List of the activity classes
         """
         ground_truth = pd.read_csv(ground_truth_filename)
-        # remove instances of length <=0 
         ground_truth = ground_truth.loc[ground_truth['t-start'].values < ground_truth['t-end'].values].reset_index(drop=True)
 
         activity_labels = np.unique(ground_truth['label'])

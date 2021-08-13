@@ -25,9 +25,9 @@ def parse_opt():
         type=str,
         default="/mnt/sdb1/Datasets/Thumos14/thumos_feature_exp/TSN_pretrain_avepool_allfrms_hdf5/")
     parser.add_argument(
-        '--video_info',
+        '--test_video_info',
         type=str,
-        default="Evaluation/thumos/annot/thumos14_test_groundtruth.csv")
+        default="Evaluation/thumos/annot/test_info.mat")
     parser.add_argument(
         '--video_anno',
         type=str,

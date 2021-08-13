@@ -4,51 +4,8 @@ import pandas as pd
 import json
 import os
 from joblib import Parallel, delayed
+from scipy.io import loadmat
 
-thumos_class = {
-    7 : 'BaseballPitch',
-    9 : 'BasketballDunk',
-    12: 'Billiards',
-    21: 'CleanAndJerk',
-    22: 'CliffDiving',
-    23: 'CricketBowling',
-    24: 'CricketShot',
-    26: 'Diving',
-    31: 'FrisbeeCatch',
-    33: 'GolfSwing',
-    36: 'HammerThrow',
-    40: 'HighJump',
-    45: 'JavelinThrow',
-    51: 'LongJump',
-    68: 'PoleVault',
-    79: 'Shotput',
-    85: 'SoccerPenalty',
-    92: 'TennisSwing',
-    93: 'ThrowDiscus',
-    97: 'VolleyballSpiking',
-}
-# thumos_class = {
-#     1: 'BaseballPitch',
-#     2: 'BasketballDunk',
-#     3: 'Billiards',
-#     4: 'CleanAndJerk',
-#     5: 'CliffDiving',
-#     6: 'CricketBowling',
-#     7: 'CricketShot',
-#     8: 'Diving',
-#     9: 'FrisbeeCatch',
-#     10: 'GolfSwing',
-#     11: 'HammerThrow',
-#     12: 'HighJump',
-#     13: 'JavelinThrow',
-#     14: 'LongJump',
-#     15: 'PoleVault',
-#     16: 'Shotput',
-#     17: 'SoccerPenalty',
-#     18: 'TennisSwing',
-#     19: 'ThrowDiscus',
-#     20: 'VolleyballSpiking'
-# }
 def IOU(s1, e1, s2, e2):
     if (s2 > e1) or (s1 > e2):
         return 0
@@ -58,7 +15,6 @@ def IOU(s1, e1, s2, e2):
 
 def Soft_NMS(df, nms_threshold=1e-5, num_prop=200):
     '''
-    From BSN code
     :param df:
     :param nms_threshold:
     :return:
@@ -75,8 +31,7 @@ def Soft_NMS(df, nms_threshold=1e-5, num_prop=200):
     rscore = []
     rlabel = []
 
-    # I use a trick here, remove the detection XDD
-    # which is longer than 300
+    # remove the detection longer than 50
     for idx in range(0, len(tscore)):
         if tend[idx] - tstart[idx] >= 50:
             tscore[idx] = 0
@@ -113,7 +68,7 @@ def Soft_NMS(df, nms_threshold=1e-5, num_prop=200):
     newDf['label'] = rlabel
     return newDf
 
-def _gen_detection_video(video_name, thu_label_id, result, idx_classes, opt, num_prop=200, topk = 2):
+def _gen_detection_video(video_name, result, idx_classes, opt, num_prop=200, topk = 2):
     path = os.path.join(opt["output_path"], opt["prop_path"]) + "/"
     files = [path + f for f in os.listdir(path) if  video_name in f]
     if len(files) == 0:
@@ -123,10 +78,8 @@ def _gen_detection_video(video_name, thu_label_id, result, idx_classes, opt, num
     dfs = []  # merge pieces of video
     for snippet_file in files:
         snippet_df = pd.read_csv(snippet_file)
-        # snippet_df = Soft_NMS(snippet_df, nms_threshold=opt['nms_alpha_detect'])
         dfs.append(snippet_df)
     df = pd.concat(dfs)
-    # if len(df) > 1:
     df = Soft_NMS(df, nms_threshold=opt['nms_alpha_detect'])
     df = df.sort_values(by="score", ascending=False)
 
@@ -143,17 +96,12 @@ def _gen_detection_video(video_name, thu_label_id, result, idx_classes, opt, num
     return {video_name:proposal_list}
 
 def gen_detection_multicore(opt):
-    # get video list
-    thumos_test_anno = pd.read_csv(opt['video_info'].split('thumos14')[:-1][0] + "test_Annotation.csv")
-    tmp = thumos_test_anno.video[thumos_test_anno.video!='video_test_0001292']
-    tmp = tmp[tmp!='video_test_0000504']
-    video_list = tmp.unique()
-    thu_label_id = np.sort(thumos_test_anno.type_idx.unique())[1:] - 1  # get thumos class id
-    thu_video_id = np.array([int(i[-4:]) - 1 for i in video_list])  # -1 is to match python index
-
-    # # load video level classification
-    # cls_data = np.load(opt['vlevel_cls_res'])
-    # cls_data = cls_data[thu_video_id,:][:, thu_label_id]  # order by video list, output 213x20
+    with open(opt["video_anno"], 'r') as fobj:
+        data = json.load(fobj)
+    video_list = []
+    for vid, v in data['database'].items():
+        if v['subset'] == 'test':
+            video_list.append(vid)
 
     # load all categories
     if os.path.exists(opt["thumos_classes"]):
@@ -164,20 +112,17 @@ def gen_detection_multicore(opt):
     for key, value in classes.items():
         idx_classes[value] = key
 
-    # detection_result
-    thumos_gt = pd.read_csv(opt['video_info'])
-
+    info_file = opt['test_video_info']
+    anno_df = loadmat(info_file)['videos'][0]
     result = {
-        video:
+        vid:
             {
-                # 'fps': thumos_gt.loc[thumos_gt['video-name'] == video]['frame-rate'].values[0],
-                'duration': thumos_gt.loc[thumos_gt['video-name'] == video]['video-duration'].values[0]
+                'duration': anno_df[int(vid[-4:]) - 1][5][0][0]
             }
-        for video in video_list
+        for vid in video_list
     }
-
     parallel = Parallel(n_jobs=16, prefer="processes")
-    detection = parallel(delayed(_gen_detection_video)(video_name, thu_label_id, result[video_name], idx_classes, opt)
+    detection = parallel(delayed(_gen_detection_video)(video_name, result[video_name], idx_classes, opt)
                         for video_name in video_list)
     detection_dict = {}
     [detection_dict.update(d) for d in detection]

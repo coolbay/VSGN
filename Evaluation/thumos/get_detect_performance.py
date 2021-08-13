@@ -1,5 +1,3 @@
-import argparse
-import numpy as np
 import os
 from .eval_detection import ANETdetection
 

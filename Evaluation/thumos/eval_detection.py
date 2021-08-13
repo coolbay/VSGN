@@ -1,6 +1,3 @@
-# This code is originally from the official ActivityNet repo
-# https://github.com/activitynet/ActivityNet
-# Small modification from ActivityNet Code
 
 import json
 import numpy as np
@@ -19,7 +16,6 @@ warnings.filterwarnings("ignore", message="numpy.ufunc size changed")
 
 class ANETdetection(object):
     GROUND_TRUTH_FIELDS = ['database']
-    # GROUND_TRUTH_FIELDS = ['database', 'taxonomy', 'version']
     PREDICTION_FIELDS = ['results', 'version', 'external_data']
 
     def __init__(self, ground_truth_filename=None, prediction_filename=None,
@@ -39,7 +35,6 @@ class ANETdetection(object):
         self.pred_fields = prediction_fields
         self.ap = None
         self.check_status = check_status
-        # Retrieve blocked videos from server.
 
         if self.check_status:
             self.blocked_videos = get_blocked_videos()
@@ -85,7 +80,6 @@ class ANETdetection(object):
         activity_index, cidx = {}, 0
         video_lst, t_start_lst, t_end_lst, label_lst = [], [], [], []
         for videoid, v in data['database'].items():
-            # print(v)
             if self.subset != v['subset']:
                 continue
             if videoid in self.blocked_videos:
