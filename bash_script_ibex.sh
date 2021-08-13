@@ -6,7 +6,7 @@
 #SBATCH -o gpu.%A.out
 #SBATCH -e gpu.%A.err
 
-#SBATCH --gres=gpu:gtx1080ti:4
+#SBATCH --gres=gpu:v100:1
 #SBATCH --cpus-per-gpu=4
 #SBATCH --mem=50GB
 
@@ -80,8 +80,7 @@ then
         --is_train true   \
         --dataset ${DATASET}   \
         --batch_size  32  \
-        --train_lr ${TRAIN_LR}  \
-        --num_neigh ${N_NEIGH} | tee -a "$LOG_TRAIN"
+        --train_lr ${TRAIN_LR}  | tee -a "$LOG_TRAIN"
 fi
 
 if [[ $2 =~ .*'infer'.* ]]
@@ -100,8 +99,7 @@ then
         --checkpoint_path ${CKP_PATH}   \
         --is_train false  \
         --dataset ${DATASET}   \
-        --batch_size  32  \
-	      --num_neigh ${N_NEIGH}  | tee -a "$LOG_TEST"
+        --batch_size  32  | tee -a "$LOG_TEST"
 fi
 
 if [[ $2 =~ .*'eval'.* ]]
