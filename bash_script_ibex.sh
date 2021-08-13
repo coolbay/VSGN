@@ -52,6 +52,15 @@ then
     module load anaconda3/2019.10
     module load cuda/10.0.130
     source activate pytorch110
+elif [ $1 == 'ibex_jiale' ]
+then
+    DATA_PATH="/ibex/scratch/zhaoc/datasets/${FEAT_NAME}"
+    OUT_PMAP='false'
+    module purge
+    module load anaconda3/2019.10
+    module load cuda/10.1.243
+    module load gcc/6.4.0
+    source activate pytorch160
 fi
 
 # Choose train or infer

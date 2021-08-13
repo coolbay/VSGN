@@ -13,15 +13,15 @@ Temporal action localization (TAL) in videos is a challenging task, especially d
 ## Environment Installation
 Create a conda environment and install required packages from scratch following the steps below
 ```
-    conda create -n pytorch110 python=3.7 &&
-    conda activate pytorch110   &&
-    conda install pytorch=1.1.0 torchvision cudatoolkit=10.0.130 -c pytorch   &&
-    conda install -c anaconda pandas    &&
-    conda install -c anaconda h5py  &&
-    conda install -c anaconda scipy &&
-    conda install -c conda-forge tensorboardx   &&
-    conda install -c anaconda joblib    &&
-    conda install -c conda-forge matplotlib &&
+    conda create -n pytorch110 python=3.7 
+    conda activate pytorch110   
+    conda install pytorch=1.1.0 torchvision cudatoolkit=10.0.130 -c pytorch   
+    conda install -c anaconda pandas    
+    conda install -c anaconda h5py  
+    conda install -c anaconda scipy 
+    conda install -c conda-forge tensorboardx   
+    conda install -c anaconda joblib    
+    conda install -c conda-forge matplotlib 
     conda install -c conda-forge urllib3
 ```
 OR you can create a conda environment from our `env.yml` file using the following command
@@ -91,6 +91,8 @@ Please cite the following paper if this codebase is useful for your work.
       year={2020}
     }
 ```
+
+
 
 [comment]: <> (test_info.mat)
 
