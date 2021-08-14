@@ -4,7 +4,7 @@
 This repo holds the codes of paper: "[Video Self-Stitching Graph Network for Temporal Action Localization](https://arxiv.org/abs/2011.14598)", accepted to ICCV 2021.
 
 ## Updates
- - Aug. 15th: Code and pre-trained model on THUMOS14 is published.
+ - Aug. 15th: Code and pre-trained model on THUMOS14 are released.
 
 ## VSGN Introduction
 ![VSGN Overview](./VSGN_overview.png)
