@@ -7,7 +7,7 @@
 #SBATCH -e gpu.%A.err
 
 #SBATCH --gres=gpu:v100:1
-#SBATCH --cpus-per-gpu=4
+#SBATCH --cpus-per-gpu=16
 #SBATCH --mem=50GB
 
 set -ex

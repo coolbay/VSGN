@@ -39,10 +39,9 @@ An overview of the project architecture in repo is shown below.
 
 The results are a bit different from the ones reported in the paper due to randomness.
 
-| Method | Model | 0.3 | 0.4 | 0.5 | 0.6 | 0.7 | Average | Short |
-|---------|--------|-----|--------|-----|-----|-------|--------|--------|
-|Baseline |
-| VSGN |
+| Method  | Model  | 0.3    | 0.4    | 0.5    | 0.6     | 0.7       | Average | Short  |
+|---------|--------|-----   |--------|-----   |-----    |-------    |---------|--------|
+| VSGN    |        | 0.6792 | 0.6109 | 0.5299 | 0.4178  | 0.2924    | 0.5699  | |
 
 
 
