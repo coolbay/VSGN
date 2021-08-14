@@ -41,7 +41,7 @@ In the following table, we show the results in terms of mAP at different tIoU th
 
 | Method  | Model  | 0.3    | 0.4    | 0.5    | 0.6     | 0.7       | Average | Short  |
 |---------|--------|-----   |--------|-----   |-----    |-------    |---------|--------|
-| VSGN    |        | 67.92 | 61.09 | 52.99 | 41.78  | 29.24    | 56.99  | 56.5 |
+| VSGN    | [Pre-trained VSGN THUMOS14](https://github.com/coolbay/VSGN/releases/download/Models_thumos14/best.pth.tar) | 67.92 | 61.09 | 52.99 | 41.78  | 29.24    | 56.99  | 56.5 |
 
 
 
