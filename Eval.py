@@ -1,6 +1,7 @@
 
 from Evaluation.thumos.generate_detection import gen_detection_multicore as gen_det_thumos
 from Evaluation.thumos.get_detect_performance import evaluation_detection as eval_det_thumos
+from DETAD.sensitivity_analysis import detad_analyze
 import Utils.opts as opts
 import os
 
@@ -15,7 +16,7 @@ if __name__ == '__main__':
         print('No predictions! Please run inference first!')
 
     print("---------------------------------------------------------------------------------------------")
-    print("Detection evaluation starts!")
+    print("Evaluation starts!")
     print("---------------------------------------------------------------------------------------------")
 
     print("a. Generate detections!")
@@ -23,4 +24,8 @@ if __name__ == '__main__':
 
     print("b. Evaluate the detection results!")
     eval_det_thumos(opt)
-    print("Detection evaluation finishes! \n")
+
+    print("c. DETAD evaluation starts!")
+    detad_analyze(opt)
+
+

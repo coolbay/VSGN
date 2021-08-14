@@ -151,6 +151,12 @@ class ActionDetectorDiagnosis(object):
                                      'label': label_lst,
                                      })
 
+        # cnt = 0
+        # for item in extra_annotations[characteristic_name]:
+        #     if item <=30:
+        #         cnt += 1
+        # print(f"Number of actions shorter than 30: {cnt}")
+
         if self.load_extra_annotations:
             for characteristic_name in self.characteristic_names:
                 ground_truth[characteristic_name] = extra_annotations[characteristic_name]

@@ -215,7 +215,7 @@ def analyze(opt, ground_truth_filename, subset, prediction_filename, output_fold
     else: 
         # THUMOS14
         characteristic_names_to_bins = {'coverage': (np.array([0,0.02,0.04,0.06,0.08,1]), ['XS','S','M','L','XL']),
-                                        'length': (np.array([0,3,6,12,18,np.inf]), ['XS','S','M','L','XL']),
+                                        'length': (np.array([0,30,60,120,180,np.inf]), ['XS','S','M','L','XL']),
                                         'num-instances': (np.array([-1,1,40,80,np.inf]), ['XS','S','M','L'])}
         colors = ['#386cb0','#f0027f','#bf5b17']
         characteristic_names = ['coverage', 'length', 'num-instances']
@@ -251,12 +251,19 @@ def analyze(opt, ground_truth_filename, subset, prediction_filename, output_fold
                               num_grids=num_grids)
 
 
-def detad_analyze_anet(opt):
+def detad_analyze(opt):
+
+    if opt['dataset'] == 'thumos':
+        is_thumos = True
+        subset = 'testing'
+    else:
+        is_thumos = False
+        subset = 'validation'
     analyze(opt, opt["detad_anno"],
-            subset="validation",
+            subset=subset,
             prediction_filename = os.path.join(opt["output_path"],opt["detect_result_file"]),
             output_folder =  os.path.join(opt["output_path"], opt["detad_sensitivity_file"]),
-            is_thumos14 = False)
+            is_thumos14 = is_thumos)
 
 
 if __name__ == '__main__':

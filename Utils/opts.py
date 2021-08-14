@@ -33,6 +33,10 @@ def parse_opt():
         type=str,
         default="Evaluation/thumos/annot/thumos_gt.json")
     parser.add_argument(
+        '--detad_anno',
+        type=str,
+        default="Evaluation/thumos/annot/thumos14_test_extra_characteristics.json")
+    parser.add_argument(
         '--thumos_classes',
         type=str,
         default="Evaluation/thumos/annot/thumos_classes_idx.json")
