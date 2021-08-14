@@ -19,7 +19,7 @@ An overview of the project architecture in repo is shown below.
     ├── Models/*                    # Network modules and losses
     ├── Utils/*                     # Data loading and hyper-parameters
     ├── Evaluation/*                # Post-processing and performance evaluation
-    ├── DETAD/*                     # DETAD evaluation for diagnosing error types   
+    ├── DETAD/*                     # DETAD evaluation to generate performance for different action duration   
     ├── Cut_long_videos.py          # Cutting long videos      
     ├── Train.py                    # Training starts from here      
     ├── Infer.py                    # Inference starts from here    
@@ -51,9 +51,9 @@ The results are a bit different from the ones reported in the paper due to rando
 ## Environment Installation
 Create a conda environment and install required packages from scratch following the steps below
 ```
-    conda create -n pytorch110 python=3.7 
-    conda activate pytorch110   
-    conda install pytorch=1.1.0 torchvision cudatoolkit=10.0.130 -c pytorch   
+    conda create -n pytorch160 python=3.7 
+    conda activate pytorch160   
+    conda install pytorch=1.6.0 torchvision cudatoolkit=10.1.243 -c pytorch   
     conda install -c anaconda pandas    
     conda install -c anaconda h5py  
     conda install -c anaconda scipy 
