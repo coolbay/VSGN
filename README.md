@@ -106,17 +106,12 @@ Please cite the following paper if this codebase is useful for your work.
       year={2020}
     }
 ```
+## References
+- https://github.com/frostinassiky/gtad
+- https://github.com/HumamAlwassel/DETAD
+- https://github.com/wzmsltw/BSN-boundary-sensitive-network.pytorch
+- https://github.com/sfzhang15/ATSS
 
 
 
-[comment]: <> (test_info.mat)
 
-[comment]: <> (val_info.mat)
-
-[comment]: <> (thumos_classes_idx.json)
-
-[comment]: <> (3. thumos14_test_groundtruth.csv)
-
-[comment]: <> (5. thumos_gt.json)
-
-[comment]: <> (6. test_Annotation.csv)
