@@ -1,4 +1,6 @@
 
+[![PWC](https://img.shields.io/endpoint.svg?url=https://paperswithcode.com/badge/video-self-stitching-graph-network-for/temporal-action-localization-on-thumos14)](https://paperswithcode.com/sota/temporal-action-localization-on-thumos14?p=video-self-stitching-graph-network-for)
+[![PWC](https://img.shields.io/endpoint.svg?url=https://paperswithcode.com/badge/video-self-stitching-graph-network-for/temporal-action-localization-on-activitynet)](https://paperswithcode.com/sota/temporal-action-localization-on-activitynet?p=video-self-stitching-graph-network-for)
 # VSGN
 
 This repo holds the codes of paper: "[Video Self-Stitching Graph Network for Temporal Action Localization](https://arxiv.org/abs/2011.14598)", accepted to ICCV 2021.
