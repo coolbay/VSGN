@@ -108,11 +108,15 @@ Please cite the following paper if this codebase is useful for your work.
       year={2020}
     }
 ```
-## References
-- https://github.com/frostinassiky/gtad
-- https://github.com/HumamAlwassel/DETAD
-- https://github.com/wzmsltw/BSN-boundary-sensitive-network.pytorch
-- https://github.com/sfzhang15/ATSS
+## Acknowledgements
+
+VSGN is built by referring to the implementation of [G-TAD](https://arxiv.org/pdf/1911.11462.pdf), [BSN](https://arxiv.org/pdf/1806.02964.pdf), [ATSS](https://arxiv.org/pdf/1912.02424.pdf) and the description in [PBRNet]((https://ojs.aaai.org/index.php/AAAI/article/view/6829)). If you use our model, please consider citing these works as well.
+
+- G-TAD: https://github.com/frostinassiky/gtad
+- DETAD: https://github.com/HumamAlwassel/DETAD
+- BSN: https://github.com/wzmsltw/BSN-boundary-sensitive-network.pytorch
+- ATSS: https://github.com/sfzhang15/ATSS
+- PBRNet: Qinying Liu, Zilei Wang, [Progressive Boundary Refinement Network for Temporal Action Detection](https://ojs.aaai.org/index.php/AAAI/article/view/6829), AAAI'20.
 
 
 
