@@ -72,9 +72,9 @@ for flag in ['val', 'test']:
                 dict_w['v_duration'] = v_df[duration_idx][0][0]
                 v_clip.append(dict_w)
 
-            # Cut long videos with short actions into short clips
-            if w_end - w_start + 1 > thr_video:
 
+            # Cut long videos with short actions into short clips
+            if opt['use_VSS'] and w_end - w_start + 1 > thr_video:
                 # For short actions in long videos
                 cnt = 0
                 dict_w = {}

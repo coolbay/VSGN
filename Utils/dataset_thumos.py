@@ -1,22 +1,16 @@
 # -*- coding: utf-8 -*-
 import numpy as np
-import pandas as pd
-import pandas
-import numpy
 import json
 import torch.utils.data as data
 import os
 import torch
 import h5py
-import pickle
 import torch.nn.functional as F
-from scipy.io import loadmat
 
 def load_json(file):
     with open(file) as json_file:
         data = json.load(json_file)
         return data
-
 
 class VideoDataSet(data.Dataset):
     def __init__(self, opt, subset="train", mode="train"):
@@ -27,9 +21,13 @@ class VideoDataSet(data.Dataset):
         self.mode = mode
         self.feature_path = opt["feature_path"]
         self.gap = opt['stitch_gap']
-        self.short_ratio = opt['short_ratio']
         self.video_anno = opt['video_anno']
         self.thumos_classes = opt["thumos_classes"]
+        self.use_VSS = opt['use_VSS']
+        if self.use_VSS:
+            self.short_ratio = opt['short_ratio']
+
+
 
         if self.mode == 'train':
             if 'val' in self.subset:
@@ -111,7 +109,7 @@ class VideoDataSet(data.Dataset):
         flow_data = torch.transpose(flow_data, 0, 1)
 
 
-        if num_frms_win > self.temporal_scale * self.short_ratio:
+        if not self.use_VSS or num_frms_win > self.temporal_scale * self.short_ratio:
             return self._get_train_data_label_org(rgb_data, flow_data, video_name,  w_start, w_end, fps_org)
         else:
             return self._get_train_data_label_stitch(rgb_data, flow_data, video_name, w_start, w_end, fps_org)

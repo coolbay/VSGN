@@ -6,9 +6,6 @@ import torch.nn as nn
 # dynamic graph from knn
 def knn(x, num_frms, opt, y=None, k=10):
     bs, _, length = x.shape
-    ratio = opt['temporal_scale'] / length
-    half1_k = int(k / 2)
-    half2_k = k - half1_k
     if y is None:
         y = x
 
@@ -16,20 +13,24 @@ def knn(x, num_frms, opt, y=None, k=10):
     dif = torch.sum((x.unsqueeze(2) - y.unsqueeze(3))** 2, dim=1)
     idx_org = dif.topk(k=k, dim=-1, largest=False)[1]
 
-    idx_new = idx_org.clone()
+    if not opt['use_VSS']:
+        return idx_org
+    else:
+        idx_new = idx_org.clone()
+        max_dif = torch.max(dif)
+        ratio = opt['temporal_scale'] / length
+        half1_k = int(k / 2)
+        half2_k = k - half1_k
+        for i in range(bs):
+            if num_frms[i] <= (opt['short_ratio'] * opt['temporal_scale']):
+                thr = int((num_frms[i] + opt['stitch_gap']) / ratio)
+                dif[i, thr:, thr:] = max_dif + 1
 
-    max_dif = torch.max(dif)
+                loc1 = torch.tensor(range(length), dtype=torch.long, device=x.device)[:, None].repeat(1, half1_k).view(-1)
+                loc2 = idx_org[i, :, :half1_k].reshape(-1)
+                dif[i, loc1, loc2] = max_dif + 1
 
-    for i in range(bs):
-        if num_frms[i] <= (opt['short_ratio'] * opt['temporal_scale']):
-            thr = int((num_frms[i] + opt['stitch_gap']) / ratio)
-            dif[i, thr:, thr:] = max_dif + 1
-
-            loc1 = torch.tensor(range(length), dtype=torch.long, device=x.device)[:, None].repeat(1, half1_k).view(-1)
-            loc2 = idx_org[i, :, :half1_k].reshape(-1)
-            dif[i, loc1, loc2] = max_dif + 1
-
-            idx_new[i, :, half1_k:] = dif[i].topk(k=half2_k, dim=-1, largest=False)[1]
+                idx_new[i, :, half1_k:] = dif[i].topk(k=half2_k, dim=-1, largest=False)[1]
 
     return idx_new
 
