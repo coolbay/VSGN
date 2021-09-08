@@ -1,16 +1,12 @@
 # -*- coding: utf-8 -*-
 import numpy as np
-import pandas as pd
-import pandas
-import numpy
 import json
 import torch.utils.data as data
 import os
 import torch
 import h5py
-import pickle
 import torch.nn.functional as F
-from scipy.io import loadmat
+
 
 def load_json(file):
     with open(file) as json_file:
