@@ -80,15 +80,15 @@ Clone this repo with git
 ### Training
 
 ```    
-     python Train.py --is_train true --dataset thumos --feature_path [DATA_PATH]  --checkpoint_path [CHECKPOINT_PATH]  
+     python Train.py --is_train true --dataset thumos --feature_path DATA_PATH  --checkpoint_path CHECKPOINT_PATH  
 ```
 ### Inference
 ```
-     python Infer.py --is_train false --dataset thumos --feature_path [DATA_PATH] --checkpoint_path [CHECKPOINT_PATH]  --output_path [OUTPUT_PATH]   
+     python Infer.py --is_train false --dataset thumos --feature_path DATA_PATH --checkpoint_path CHECKPOINT_PATH  --output_path OUTPUT_PATH   
 ```
 ### Evaluation
 ```
-     python Eval.py --dataset thumos --output_path [OUTPUT_PATH]
+     python Eval.py --dataset thumos --output_path OUTPUT_PATH
 ```
 ### Run training / inference / evaluation in one command
 ```
