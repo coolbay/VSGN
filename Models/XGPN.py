@@ -36,9 +36,6 @@ class XGPN(nn.Module):
         for i in range(self.num_levels - 1):
             self.levels2.append(self._make_levels(in_channels=self.bb_hidden_dim, out_channels=self.bb_hidden_dim))
 
-
-        # self.freeze_bn = freeze_bn
-
     def _make_levels_enc(self, opt, in_channels, out_channels):
         return xGN(opt, in_channels=in_channels, out_channels=out_channels)
 
@@ -86,42 +83,3 @@ class XGPN(nn.Module):
         feats_dec = self._decoder(feats_enc)
 
         return feats_enc, feats_dec
-
-    # def freeze_bn(self):
-    #     for m in self.modules():
-    #         if isinstance(m, SynchronizedBatchNorm1d):
-    #             m.eval()
-    #         elif isinstance(m, nn.BatchNorm1d):
-    #             m.eval()
-    # 
-    # def get_1x_lr_params(self):
-    #     modules = [self.backbone]
-    #     for i in range(len(modules)):
-    #         for m in modules[i].named_modules():
-    #             if self.freeze_bn:
-    #                 if isinstance(m[1], nn.Conv1d):
-    #                     for p in m[1].parameters():
-    #                         if p.requires_grad:
-    #                             yield p
-    #             else:
-    #                 if isinstance(m[1], nn.Conv1d) or isinstance(m[1], SynchronizedBatchNorm1d) \
-    #                         or isinstance(m[1], nn.BatchNorm1d):
-    #                     for p in m[1].parameters():
-    #                         if p.requires_grad:
-    #                             yield p
-    # 
-    # def get_10x_lr_params(self):
-    #     modules = [self.aspp, self.decoder]
-    #     for i in range(len(modules)):
-    #         for m in modules[i].named_modules():
-    #             if self.freeze_bn:
-    #                 if isinstance(m[1], nn.Conv1d):
-    #                     for p in m[1].parameters():
-    #                         if p.requires_grad:
-    #                             yield p
-    #             else:
-    #                 if isinstance(m[1], nn.Conv1d) or isinstance(m[1], SynchronizedBatchNorm1d) \
-    #                         or isinstance(m[1], nn.BatchNorm1d):
-    #                     for p in m[1].parameters():
-    #                         if p.requires_grad:
-    #                             yield p
