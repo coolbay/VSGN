@@ -82,10 +82,7 @@ Clone this repo with git
 ```
     python Cut_long_videos.py [--use_VSS] 
 ```
-
-
 ### Training
-
 ```    
      python Train.py [--use_VSS] [--use_xGPN] --is_train true --dataset thumos --feature_path DATA_PATH  --checkpoint_path CHECKPOINT_PATH  
 ```
@@ -95,7 +92,7 @@ Clone this repo with git
 ```
 ### Evaluation
 ```
-     python Eval.py --dataset thumos --output_path [OUTPUT_PATH]
+     python Eval.py --dataset thumos --output_path OUTPUT_PATH
 ```
 ### Run training / inference / evaluation in one command
 ```
@@ -108,12 +105,14 @@ Clone this repo with git
 ## Cite this paper
 Please cite the following paper if this codebase is useful for your work.
 ```
-    @article{zhao2020video,
-      title={Video Self-Stitching Graph Network for Temporal Action Localization},
-      author={Zhao, Chen and Thabet, Ali and Ghanem, Bernard},
-      journal={arXiv preprint arXiv:2011.14598},
-      year={2020}
-    }
+  @inproceedings{zhao2021video,
+    title={Video Self-Stitching Graph Network for Temporal Action Localization},
+    author={Zhao, Chen and Thabet, Ali K and Ghanem, Bernard},
+    booktitle={Proceedings of the IEEE/CVF International Conference on Computer Vision},
+    pages={13658--13667},
+    year={2021}
+  }
+
 ```
 ## Acknowledgements
 
