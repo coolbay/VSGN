@@ -9,10 +9,11 @@ class XGPN(nn.Module):
     def __init__(self, opt):
         super(XGPN, self).__init__()
         self.input_feat_dim = opt["input_feat_dim"]
-        self.bb_hidden_dim = opt['bb_hidden_dim']  # 512
+        self.bb_hidden_dim = opt['bb_hidden_dim']
         self.batch_size = opt["batch_size"]
         self.tem_best_loss = 10000000
-        self.num_levels = opt['num_levels'] # 5
+        self.num_levels = opt['num_levels']
+        self.use_xGPN = opt['use_xGPN']
 
         self.conv0 = nn.Sequential(
             nn.Conv1d(in_channels=self.input_feat_dim, out_channels=self.bb_hidden_dim,kernel_size=3,stride=2,padding=1,groups=1),
@@ -36,8 +37,16 @@ class XGPN(nn.Module):
         for i in range(self.num_levels - 1):
             self.levels2.append(self._make_levels(in_channels=self.bb_hidden_dim, out_channels=self.bb_hidden_dim))
 
+
     def _make_levels_enc(self, opt, in_channels, out_channels):
-        return xGN(opt, in_channels=in_channels, out_channels=out_channels)
+        if self.use_xGPN:
+            return xGN(opt, in_channels=in_channels, out_channels=out_channels)
+        else:
+            return nn.Sequential(
+                nn.Conv1d(in_channels=in_channels, out_channels=out_channels, kernel_size=3, stride=2, padding=1,
+                          groups=1),
+                nn.ReLU(inplace=True)
+            )
 
     def _make_levels_dec(self, in_channels, out_channels, output_padding = 1):
 
@@ -58,7 +67,10 @@ class XGPN(nn.Module):
         feats = []
         x = self.conv0(input)
         for i in range(0, self.num_levels):
-            x = self.levels_enc[i](x, num_frms)
+            if self.use_xGPN:
+                x = self.levels_enc[i](x, num_frms)
+            else:
+                x = self.levels_enc[i](x)
             feats.append(x)
 
         return feats

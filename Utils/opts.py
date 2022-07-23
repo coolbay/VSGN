@@ -194,6 +194,16 @@ def parse_opt():
         type=float,
         default=0.38)
 
+    # Baselines
+    parser.add_argument(
+        '--use_xGPN',
+        default=False,
+        action='store_true')
+    parser.add_argument(
+        '--use_VSS',
+        default=False,
+        action='store_true')
+
     args = parser.parse_args()
 
     return args

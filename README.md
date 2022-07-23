@@ -77,14 +77,18 @@ Clone this repo with git
 ```
 
 ## Run the Code
-### Training
 
+### Prepare input by cutting videos
+```
+    python Cut_long_videos.py [--use_VSS] 
+```
+### Training
 ```    
-     python Train.py --is_train true --dataset thumos --feature_path DATA_PATH  --checkpoint_path CHECKPOINT_PATH  
+     python Train.py [--use_VSS] [--use_xGPN] --is_train true --dataset thumos --feature_path DATA_PATH  --checkpoint_path CHECKPOINT_PATH  
 ```
 ### Inference
 ```
-     python Infer.py --is_train false --dataset thumos --feature_path DATA_PATH --checkpoint_path CHECKPOINT_PATH  --output_path OUTPUT_PATH   
+     python Infer.py [--use_VSS] [--use_xGPN] --is_train false --dataset thumos --feature_path DATA_PATH --checkpoint_path CHECKPOINT_PATH  --output_path OUTPUT_PATH   
 ```
 ### Evaluation
 ```
