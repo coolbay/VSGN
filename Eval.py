@@ -6,11 +6,6 @@ from Evaluation.activitynet.get_detect_performance import evaluation_detection a
 from Evaluation.activitynet.get_detect_performance_v import evaluation_detection_v
 from DETAD.sensitivity_analysis import detad_analyze_anet
 
-from Evaluation.thumos.generate_detection import gen_detection_multicore as gen_det_thumos
-from Evaluation.thumos.get_detect_performance import evaluation_detection as eval_det_thumos
-
-from Evaluation.hacs.generate_detection import gen_detections_multiproc as gen_det_hacs
-from Evaluation.hacs.get_detect_performance import evaluation_detection as eval_det_hacs
 
 import Utils.opts as opts
 import os
@@ -68,38 +63,5 @@ if __name__ == '__main__':
         print("---------------------------------------------------------------------------------------------")
         detad_analyze_anet(opt)
         print("DETAD evaluation finishes! \n")
-
-    elif opt['dataset'] == 'thumos':
-
-        print("---------------------------------------------------------------------------------------------")
-        print("3. Detection evaluation starts!")
-        print("---------------------------------------------------------------------------------------------")
-
-        print("a. Generate detections!")
-        gen_det_thumos(opt)
-
-        print("b. Evaluate the detection results!")
-        eval_det_thumos(opt)
-        print("Detection evaluation finishes! \n")
-
-    elif opt['dataset'] == 'hacs':
-
-
-        print(datetime.datetime.now())
-        print("---------------------------------------------------------------------------------------------")
-        print("3. Detection evaluation starts!")
-        print("---------------------------------------------------------------------------------------------")
-
-        print("a. Generate detections!")
-        gen_det_hacs(opt)
-
-        print("b. Evaluate the detection results!")
-        eval_det_hacs(opt)
-        print("Detection evaluation finishes! \n")
-
-        if opt['eval_det_v'] == 'true':
-            print("c. Evaluate detection for each video!")
-            evaluation_detection_v(opt)
-            print("Detection evaluation finishes! \n")
 
 

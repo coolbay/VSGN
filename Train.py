@@ -7,10 +7,8 @@ import torch.optim as optim
 import numpy as np
 from tensorboardX import SummaryWriter
 import Utils.opts as opts
-from Utils.dataset_thumos import VideoDataSet as VideoDataSet_thumos
 from Utils.dataset_activitynet import VideoDataSet as VideoDataSet_anet
-from Utils.dataset_hacs import VideoDataSet as VideoDataSet_hacs
-from Models.SegTAD import SegTAD
+from Models.VSGN import VSGN
 from Utils.loss_function import  detect_loss_fuction, get_mask, boundary_loss_function, bi_loss
 import datetime
 import torch.nn as nn
@@ -38,10 +36,10 @@ class BatchCollator(object):
         gt_bbox = transposed_batch[5]
         return video_data, match_score_action, match_score_start, match_score_end, gt_iou_map, gt_bbox
 
-def Train_SegTAD(opt):
+def Train_VSGN(opt):
     path_appendix = '_'.join(string for string in opt['checkpoint_path'].split('_')[1:])
     writer = SummaryWriter(logdir='runs/' + path_appendix)
-    model = SegTAD(opt)
+    model = VSGN(opt)
     device = "cuda"
     model = torch.nn.DataParallel(model)
     model.to(device)
@@ -81,10 +79,6 @@ def Train_SegTAD(opt):
 
     if opt['dataset'] == 'activitynet':
         VideoDataSet = VideoDataSet_anet
-    elif opt['dataset'] == 'thumos':
-        VideoDataSet = VideoDataSet_thumos
-    elif opt['dataset'] == 'hacs':
-        VideoDataSet = VideoDataSet_hacs
 
     # device_id = 0,1
     # torch.cuda.set_device(torch.device("cuda:" + str(device_id) if torch.cuda.is_available() else "cpu"))
@@ -104,8 +98,8 @@ def Train_SegTAD(opt):
     bm_mask = get_mask(opt["prop_temporal_scale"])
     for epoch in range(start_epoch, opt["num_epoch"]):
 
-        train_SegTAD_epoch(train_loader, model, optimizer, epoch, writer, opt, bm_mask)
-        epoch_loss = test_SegTAD_epoch(test_loader, model, epoch, writer, opt, bm_mask)
+        train_VSGN_epoch(train_loader, model, optimizer, epoch, writer, opt, bm_mask)
+        epoch_loss = test_VSGN_epoch(test_loader, model, epoch, writer, opt, bm_mask)
 
         print((datetime.datetime.now()))
         state = {'epoch': epoch + 1,
@@ -140,7 +134,7 @@ def plot_dist_targets(all_area):
     # plt.close('all')
 
 
-def train_SegTAD_epoch(data_loader, model, optimizer, epoch, writer, opt, bm_mask):
+def train_VSGN_epoch(data_loader, model, optimizer, epoch, writer, opt, bm_mask):
     model.train()
 
     epoch_loss = 0
@@ -240,7 +234,7 @@ def train_SegTAD_epoch(data_loader, model, optimizer, epoch, writer, opt, bm_mas
     # torch.save(state, opt["checkpoint_path"] + "/checkpoint" + str(epoch) + ".pth.tar")
 
 
-def test_SegTAD_epoch(data_loader, model, epoch, writer, opt, bm_mask):
+def test_VSGN_epoch(data_loader, model, epoch, writer, opt, bm_mask):
     model.eval()
 
     epoch_loss = 0
@@ -338,7 +332,7 @@ if __name__ == '__main__':
     print("---------------------------------------------------------------------------------------------")
     print("Training starts!")
     print("---------------------------------------------------------------------------------------------")
-    Train_SegTAD(opt)
+    Train_VSGN(opt)
     print("Training finishes!")
 
     print(datetime.datetime.now())

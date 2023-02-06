@@ -1,9 +1,6 @@
-import math
+
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
-
-
 
 def segment_tiou_mat(target_segments, test_segments):
     target_num = target_segments.shape[1]
@@ -17,12 +14,6 @@ def segment_tiou_mat(target_segments, test_segments):
              (target_ext[:, :, :, 1] - target_ext[:, :, :, 0]) -
              intersection)
     tiou = intersection / union
-    # tiou[:, range(target_num), range(test_num)] = 0
-    # intersection[:, range(target_num), range(test_num)] = 0
-
-    # tiou[tiou==1] = 0
-    # intersection[intersection==1] = 0
-
     return tiou, intersection
 
 def segment_dist_mat(target_segments, test_segments):
